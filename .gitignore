@@ -1,2 +1,9 @@
 # Files from compilation 
 compile
+
+# no need to add the plot output to the repo
+plots
+
+# can't store data online, bummer!
+data
+
