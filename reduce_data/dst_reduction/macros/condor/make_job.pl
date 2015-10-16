@@ -6,11 +6,11 @@ my $dst_list_name    = $ARGV[0]; # DST list name, must contain run number
 my $output_directory = $ARGV[1]; # must be of form /dir1/dir2 (no trailing "/" character)
 
 # Hardcode these to avoid a large number of arguments fed to make_job.pl...
-my $rootmacro = "/direct/phenix+spin2/beaumim/vernierScans/data_reduction/macros/Run_Reduction.C";
-my $exedir    = "/direct/phenix+spin2/beaumim/vernierScans/data_reduction/macros/condor";
-my $jobdir    = "/direct/phenix+spin2/beaumim/vernierScans/data_reduction/macros/condor";
-my $logdir    = "/direct/phenix+spin2/beaumim/vernierScans/data_reduction/macros/condor";
-my $errdir    = "/direct/phenix+spin2/beaumim/vernierScans/data_reduction/macros/condor";
+my $rootmacro = "/direct/phenix+spin2/beaumim/vernierScans/reduce_data/dst_reduction/macros/Run_Reduction.C";
+my $exedir    = "/direct/phenix+spin2/beaumim/vernierScans/reduce_data/dst_reduction/macros/condor";
+my $jobdir    = "/direct/phenix+spin2/beaumim/vernierScans/reduce_data/dst_reduction/macros/condor";
+my $logdir    = "/direct/phenix+spin2/beaumim/vernierScans/reduce_data/dst_reduction/macros/condor";
+my $errdir    = "/direct/phenix+spin2/beaumim/vernierScans/reduce_data/dst_reduction/macros/condor";
 my $outdir    = "$output_directory";
 my $stub      = "Vernier";
 
@@ -23,7 +23,7 @@ if($dst_list_name =~ /.*(\d{6}).*/m) {
   die "you did not supply compatible arguments to to this script!\n";
 }
 
-my $exefile = "$exedir/$stub"."_$run_number.sh";
+my $exefile = "$exedir/$stub"."_$run_number.csh";
 my $jobfile = "$exedir/$stub"."_$run_number.job";
 
 my $jobFile =
@@ -35,17 +35,29 @@ Arguments    =
 Log          = $jobdir/$stub"."_$run_number.log
 Output       = $jobdir/$stub"."_$run_number.out
 Error        = $jobdir/$stub"."_$run_number.err
-Notify_user  =  \"cas\"
+Notify_user  = beaumim
 Queue";
 
-my $output_file = "$output_directory/$run_number"."_reduced.root"
+# use tcsh or csh instead of bash, because of concerns with getting the proper environment
+my $output_file = "$output_directory/$run_number"."_reduced.root";
 my $scriptFile = 
-"#! /bin/bash
+"#! /bin/csh
 # THIS IS AN AUTOMATICALLY GENERATED SCRIPT
 # MODIFY/RUN AT YOUR OWN RISK.
-# SCRIPT: $stub.sh
+# SCRIPT: $stub.csh
 
-root -l -b -q $rootmacro\'(\"$dst_list_name\",\"$output_file\")\'";
+# Get the proper environment:
+setenv HOME /phenix/u/\$LOGNAME
+source /etc/csh.login
+foreach i (/etc/profile.d/*.csh)
+source \$i
+end
+source /opt/phenix/bin/phenix_setup.csh
+source \$HOME/.cshrc
+echo \$MYINSTALL
+echo \$LD_LIBRARY_PATH
+
+root.exe -l -b -q $rootmacro\'(\"$dst_list_name\",\"$output_file\")\'";
 
 open EXEFILE, ">", $exefile or die $!;
 open JOBFILE, ">", $jobfile or die $!;

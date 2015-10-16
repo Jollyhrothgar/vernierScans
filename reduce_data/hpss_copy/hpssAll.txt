@@ -1,0 +1,7 @@
+/home/phnxsink/run12/ppgdata/run_0000367000_0000368000/VSCANDATA_ppg_P00-0000367138-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000367138-0000.PRDFF
+/home/phnxsink/run12/ppgdata/run_0000366000_0000367000/VSCANDATA_ppg_P00-0000366605-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000366605-0000.PRDFF
+/home/phnxsink/run12/ppgdata/run_0000365000_0000366000/VSCANDATA_ppg_P00-0000365866-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000365866-0000.PRDFF
+/home/phnxsink/run12/ppgdata/run_0000364000_0000365000/VSCANDATA_ppg_P00-0000364636-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000364636-0000.PRDFF
+/home/phnxsink/run12/ppgdata/run_0000362000_0000363000/VSCANDATA_ppg_P00-0000362492-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000362492-0000.PRDFF
+/home/phnxsink/run12/ppgdata/run_0000360000_0000361000/VSCANDATA_ppg_P00-0000360879-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000360879-0000.PRDFF
+/home/phnxsink/run12/ppgdata/run_0000359000_0000360000/VSCANDATA_ppg_P00-0000359711-0000.PRDFF pftp://beaumim@rcas2066/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/files/VSCANDATA_ppg_P00-0000359711-0000.PRDFF
