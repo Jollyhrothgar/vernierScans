@@ -1,0 +1,29 @@
+dlist -f -t 14 /common/a7/eventdata/EVENTDATA_ppg_P00-0000434156-0000.PRDFF
+
+-f tells dlist to list from a file, -t tells dlist to look for event type '14' which happens to be the scalar type
+We were looking at the substructure of the event, stored as packets, specifically packet 900, which contains the
+actual scalaer counts for physics scalers (i.e. the counts from the triggers on the trigger readout - 0-32
+
+
+dpipe -sf -dn -i /common/a7/eventdata/EVENTDATA_ppg_P00-0000434156-0000.PRDFF
+dpipe will take infomation from a pRDF and pipe it to either another prdf or to the console. -sf means "source = file",
+-dn means "destination nothing". -i means show information.
+
+dpipe -sf -dn -i /common/a7/eventdata/EVENTDATA_ppg_P00-0000434156-0000.PRDFF | grep -i "scaler event"
+Example to search output from dpipe for just scaler events.
+
+dpipe -sf -dn -i -n50 /common/a7/eventdata/EVENTDATA_ppg_P00-0000434156-0000.PRDFF
+example to show just the first 50 events.
+
+
+This area was generated using a perlscript: writePmonProdject.pl
+
+We added (for the environment) a "-m32" to the CXX flags area of the makefile.
+We then softlinked the makefile to the standard name (this option exists to
+prevent overwriting Makefiles in an area with many packet monitors). To
+generate the area, we did: ":~> writePmonProject.pl clock".
+
+
+Usage Instructions - libclock.so (from the packet analysis tool)
+Run Macro
+

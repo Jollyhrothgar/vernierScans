@@ -31,3 +31,7 @@ Vernier_*.csh
 # don't commit giant files
 *.PRDFF
 
+#ignore output files from analysis
+*DST_dump.txt
+*.exe
+merged_trees
