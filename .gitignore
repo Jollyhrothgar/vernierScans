@@ -19,3 +19,15 @@ depcomp
 configure
 ltmain.sh
 Makefile.in
+
+# condor log stuff + shell scripts for reduce_data/dst_reduction/macros/condor area
+Vernier_*.sh
+Vernier_*.out
+Vernier_*.err
+Vernier_*.log
+Vernier_*.job
+Vernier_*.csh
+
+# don't commit giant files
+*.PRDF
+
