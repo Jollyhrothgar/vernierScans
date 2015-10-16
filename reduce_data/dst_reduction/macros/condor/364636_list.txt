@@ -1,0 +1,9 @@
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0004.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0000.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0008.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0005.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0001.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0007.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0003.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0006.root
+/direct/phenix+spin2/beaumim/vernierScans/run_data/run_12/DSTs/DST_VERNIER_run12_vernier_online_ana281-0000364636-0002.root
