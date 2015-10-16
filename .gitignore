@@ -29,5 +29,5 @@ Vernier_*.job
 Vernier_*.csh
 
 # don't commit giant files
-*.PRDF
+*.PRDFF
 
