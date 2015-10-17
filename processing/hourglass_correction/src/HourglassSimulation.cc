@@ -64,7 +64,7 @@ int HourglassSimulation::Init() {
   sigma_zr = 55.95*scale;  
   mu_zl = -70.2*scale ; 
   mu_zr =  56.7*scale; 
-  z_vtx_off = -35.25; 
+  z_vtx_off = 9.38; // wp was -35.25, maybe use difference at maxmial overlap for everything??
   beta_star = 85; // wp was 85
   angle = 8.e-5; // wp was -0.08e-3
 

@@ -9,6 +9,7 @@
 
 #include "TFile.h"
 #include "TCanvas.h"
+#include "TError.h"
 
 HourglassData::HourglassData() {
   std::cout << "Instantiating instance of HourglassData at " << this << std::endl;
@@ -27,21 +28,23 @@ HourglassData::~HourglassData() {
 int HourglassData::Init(
   const std::string& run_number,
   const std::string& scalers_file,
-  const std::string& epoch_steps_file,
+  const std::string& epoch_step_boundaries,
   const std::string& bpm_data_file_name, 
-  const std::string& bpm_steps_file_name
+  const std::string& relative_step_boundaries,
+  const std::string& bpm_planned_steps_file_name
 ){
   std::cout << "Processing Hourglass effect for run: " << run_number << std::endl;
   run_number_ = run_number;
   std::cout << " Reading infomration from " << scalers_file << " and " << std::endl
-      << "    " << epoch_steps_file << std::endl;
+      << "    " << epoch_step_boundaries << std::endl;
 
-  epoch_steps_file_name_ = epoch_steps_file;
+  epoch_step_boundaries_file_name_ = epoch_step_boundaries;
+  bpm_planned_steps_file_name_ = bpm_planned_steps_file_name;
   scalers_file_name_     = scalers_file;
   bpm_.Init(
     run_number_,
     bpm_data_file_name,
-    bpm_steps_file_name
+    relative_step_boundaries
      );
   bpm_.Run();
   // Get micron position associated with step
@@ -96,13 +99,14 @@ int HourglassData::Init(
     std::cout << "Step: " << step_i << " , Displacement: " << displacement << ", Scan: " << scan_name << std::endl;
     step_i++;
   }
-  LoadSteps();
+  LoadEpochStepBoundaries();
+  LoadPlannedSteps();
   InitHistograms();
   return 0;
 }
 
-int HourglassData::LoadSteps() {
-  std::ifstream in_file(epoch_steps_file_name_.c_str());
+int HourglassData::LoadEpochStepBoundaries(){ 
+  std::ifstream in_file(epoch_step_boundaries_file_name_.c_str());
   std::string line;
   if(in_file) {
     while(getline(in_file,line)) {
@@ -115,7 +119,27 @@ int HourglassData::LoadSteps() {
       step_boundaries_.push_back(std::make_pair(start_time,end_time));
     }
   } else {
-    std::cerr << "could not open " << epoch_steps_file_name_ << std::endl;
+    std::cerr << "could not open " << epoch_step_boundaries_file_name_ << std::endl;
+    return 1;
+  } 
+  return 0;
+}
+
+int HourglassData::LoadPlannedSteps() {
+  std::ifstream in_file(bpm_planned_steps_file_name_.c_str());
+  std::string line;
+  if(in_file) {
+    while(getline(in_file,line)) {
+      if(line[0] == '#') continue;
+      std::stringstream ss;
+      ss.str(line);
+      float separation;
+      ss >> separation;
+      planned_steps_.push_back(separation);
+      std::cout << separation << std::endl;
+    }
+  } else {
+    std::cerr << "could not open " << bpm_planned_steps_file_name_ << std::endl;
     return 1;
   } 
   return 0;
@@ -160,6 +184,7 @@ int HourglassData::Run() {
   // Run 12 Defaults
   int bbc_wide_trig_bit = 0x00000002;
   int zdc_wide_trig_bit = 0x00000004;
+  std::cout << "Loading data from: " << scalers_file_name_ << std::endl;
 
   std::ifstream in_file(scalers_file_name_.c_str());
   std::string line;
@@ -173,40 +198,47 @@ int HourglassData::Run() {
       d.Reset();
 
       ss >> event_number 
-        >> d.atp_number 
-        >> d.timestamp 
-        >> d.bunch 
-        >> d.gl1p_bbc 
-        >> d.gl1p_clock 
-        >> d.gl1p_zdc_wide 
-        >> d.gl1p_zdc_narrow 
-        >> d.trigraw    
-        >> d.triglive   
-        >> d.trigscaled 
-        >> d.bbc_z      
-        >> d.zdc_z;
+          >> d.atp_number 
+          >> d.timestamp 
+          >> d.bunch 
+          >> d.gl1p_bbc 
+          >> d.gl1p_clock 
+          >> d.gl1p_zdc_wide 
+          >> d.gl1p_zdc_narrow 
+          >> d.trigraw    
+          >> d.triglive   
+          >> d.trigscaled 
+          >> d.bbc_z      
+          >> d.zdc_z;
 
       int step = bpm_.LookupStep((double)d.timestamp);
-        auto bbc = bbc_z_vtx_.find(step);
-        auto zdc = zdc_z_vtx_.find(step);
-        if( (bbc != bbc_z_vtx_.end() ) && (zdc != zdc_z_vtx_.end()) ) { 
-          if( ( d.trigscaled & bbc_wide_trig_bit ) > 0) { (bbc->second)->Fill(d.bbc_z); }
-          if( ( d.trigscaled & zdc_wide_trig_bit ) > 0) { (zdc->second)->Fill(d.zdc_z); }
-        }
+      auto bbc = bbc_z_vtx_.find(step);
+      auto zdc = zdc_z_vtx_.find(step);
+      if( (bbc != bbc_z_vtx_.end() ) && (zdc != zdc_z_vtx_.end()) ) { 
+        if( ( d.trigscaled & bbc_wide_trig_bit ) > 0) { (bbc->second)->Fill(d.bbc_z); }
+        if( ( d.trigscaled & zdc_wide_trig_bit ) > 0) { (zdc->second)->Fill(d.zdc_z); }
+      }
     }
   } else {
     std::cerr << "could not open " << scalers_file_name_ << std::endl;
     return 1;
   } 
+  ShowOffsets();
   return 0;
 }
 
-int HourglassData::CreatePlots() {
+int HourglassData::ShowOffsets() { 
+  for(unsigned int i = 0; i < step_boundaries_.size(); i++) {
+    std::cout << "Step: " << i << ", zvtx offset: " 
+        << bbc_z_vtx_[i]->GetMean() - zdc_z_vtx_[i]->GetMean() 
+        << ", planned offset: " << planned_steps_[i] << std::endl; 
+  }
 
- return 0;
+  return 0;
 }
 
 int HourglassData::SaveFigures( const std::string& figure_output_dir = "./") {
+  gErrorIgnoreLevel = kWarning; 
   std::string tfile_name = figure_output_dir + "/" + run_number_ + "_HourglassData.root"; 
   std::string name       = figure_output_dir + "/" + run_number_ + "_HourglassData.pdf";
   std::string out_file_name = name + "[";
@@ -216,7 +248,6 @@ int HourglassData::SaveFigures( const std::string& figure_output_dir = "./") {
   for(auto plot_i = plot_registry_.begin(); plot_i != plot_registry_.end(); ++plot_i) {
     auto draw_obj = *plot_i;
     if(!draw_obj) continue;
-    std::cout << "Saving/Drawing: " << draw_obj->GetName() << std::endl;
     root_out->cd();
     draw_obj->Write();
     if(!draw_obj) continue;
@@ -232,5 +263,6 @@ int HourglassData::SaveFigures( const std::string& figure_output_dir = "./") {
   root_out->Close();
   if(root_out) delete root_out;
   delete booklet;
+  gErrorIgnoreLevel = kInfo;
   return 0;
 }

@@ -11,7 +11,8 @@ int Run_HourglassData(
     merged_prdf_dst[run_index],
     epoch_step_boundaries[run_index],
     bpm_file[run_index],
-    relative_time_step_boundaries[run_index]
+    relative_time_step_boundaries[run_index],
+    planned_beam_steps[run_index]
   );
   hd.Run();
   hd.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");

@@ -19,6 +19,14 @@ class HourglassConfiguration{
   int ShowConfigFile();
   int SetDefaultValues();
   std::string GetConfigName();
+
+  /** Setup Funcitons 
+   * Obtain config parameters from analysis environment */
+  int SetupWcmDcct(); /** wp, load a text file with the parameters */
+  int SetupBeamWidthTime(); /** wp, load a text file with the parameters */
+  int SetupBeamPositionSteps(); /** wp, load a text file with the parameters */
+  int SetupHourglassData(); /** wp, load a text file with the parameters */ 
+
  private:
   std::map<std::string,std::string> config_;
   /** config_: maps config parameter to config value. Conversion handled with

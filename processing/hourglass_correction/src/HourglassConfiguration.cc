@@ -31,16 +31,16 @@ int HourglassConfiguration::GenerateEmptyConfigFile() {
   config_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData
   config_["BETA_STAR" ]                     = ""; // GOAL: find this
   config_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this 
-  config_["MULTIPLE_COLLISION_RATE"]        = ""; // wp
-  config_["MAX_COLLISIONS"]                 = ""; // wp
   config_["FILLED_BUNCHES"]                 = ""; // Fixed
   config_["BUNCH_CROSSING_FREQUENCY"]       = ""; // Fixed
   config_["Z_PROFILE_SCALE_VALUE"]          = ""; // Fixed
-  config_["Z_BUNCH_WIDTH_LEFT_GAUSSIAN"]    = ""; // wp
-  config_["Z_BUNCH_WIDTH_RIGHT_GAUSIAN"]    = ""; // wp
-  config_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = ""; // wp
-  config_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = ""; // wp
-  config_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = ""; // wp
+  config_["MULTIPLE_COLLISION_RATE"]        = ""; // wp SetDefaultValues
+  config_["MAX_COLLISIONS"]                 = ""; // wp SetDefaultValues
+  config_["Z_BUNCH_WIDTH_LEFT_GAUSSIAN"]    = ""; // wp SetDefaultValues
+  config_["Z_BUNCH_WIDTH_RIGHT_GAUSIAN"]    = ""; // wp SetDefaultValues
+  config_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = ""; // wp SetDefaultValues
+  config_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = ""; // wp SetDefaultValues
+  config_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = ""; // wp SetDefaultValues
   return 0;
 }
 
