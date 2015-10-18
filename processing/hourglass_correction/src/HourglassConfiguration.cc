@@ -29,7 +29,7 @@ int HourglassConfiguration::GenerateEmptyConfigFile() {
   config_["VERTICAL_BEAM_WIDTH"]            = ""; // BeamWidthTime (done)
   config_["AVG_NUMBER_IONS_BLUE_BEAM"]      = ""; // WcmDcct (todo) 
   config_["AVG_NUMBER_IONS_YELLOW_BEAM"]    = ""; // WcmDcct (todo)
-  config_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData 
+  config_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData (done)
   config_["BETA_STAR" ]                     = ""; // GOAL: find this, SetDefaultValues
   config_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this, SetDefaultValues
   config_["FILLED_BUNCHES"]                 = ""; // Fixed, SetDefaultValues

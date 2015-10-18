@@ -353,6 +353,10 @@ int WcmDcctManager::ShowSummary() {
   std::cout << "Filled Bunches Blue: " << n_filled_blue << std::endl;
   std::cout << "Average yell beam bunch population: " << average_yell_bunch_pop/n_filled_yell << "e9 ions" << std::endl;
   std::cout << "Filled Bunches Yell: " << n_filled_yell << std::endl;
+
+  blue_beam_population_ = average_blue_bunch_pop/n_filled_blue;
+  yellow_beam_population_ = average_yell_bunch_pop/n_filled_yell;
+
   return 0;
 }
 
@@ -656,5 +660,14 @@ int WcmDcctManager::SaveFigures(const std::string& figure_output_dir) {
   root_out->Close();
   delete booklet;
   gErrorIgnoreLevel = kInfo;
+  return 0;
+}
+
+int WcmDcctManager::SaveBeamPopulations(const std::string& out_dir) {
+  std::stringstream out_file_name;
+  out_file_name << out_dir << "/" << run_number_ << "_WCMDCCT_BeamPopulation.txt";
+  std::ofstream out_file(out_file_name.str().c_str());
+  out_file << "AVG_NUMBER_IONS_BLUE_BEAM "   << blue_beam_population_ << std::endl;
+  out_file << "AVG_NUMBER_IONS_YELLOW_BEAM " << yellow_beam_population_ << std::endl;
   return 0;
 }
