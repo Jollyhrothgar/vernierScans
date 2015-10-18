@@ -11,6 +11,7 @@
 #include "TFile.h"
 #include "TFitResultPtr.h"
 #include "TFitResult.h"
+#include "TError.h"
 
 #include <iostream>
 #include <iomanip>
@@ -44,21 +45,21 @@ BeamWidthTime::~BeamWidthTime() {
 }
 
 int BeamWidthTime::Init(
-      const std::string& run_number ,
-      const std::string& bpm_data   ,
-      const std::string& bpm_steps  ,
-      const std::string& epoch_steps,
-      const std::string& scalers_file,
-      const std::string& planned_beam_steps_file
-      ){
+    const std::string& run_number ,
+    const std::string& bpm_data   ,
+    const std::string& bpm_steps  ,
+    const std::string& epoch_steps,
+    const std::string& scalers_file,
+    const std::string& planned_beam_steps_file
+    ){
   bbc.Init(
       scalers_file,
       run_number);
   bbc.Run();
   bpm.Init(
-    run_number,
-    bpm_data,
-    bpm_steps
+      run_number,
+      bpm_data,
+      bpm_steps
     );
   bpm.Run();
 
@@ -68,7 +69,7 @@ int BeamWidthTime::Init(
 
   step_time_ = new TH1F("step_time_","Average Time Per Step",20,0,120); 
   plot_registry_.push_back(step_time_);
-  
+
   // load boundaries
   std::ifstream in_file(epoch_steps.c_str());
   if(in_file) {
@@ -284,8 +285,8 @@ int BeamWidthTime::MakeScanSteps(){
     // NOTE that epoch_step_boundaries_ MUST be the same size as our planned steps vector.
     if( steps_epoch_boundaries_.size() != planned_beam_separation_.size() ) {
       std::cerr << " the number of planned steps does not equal the number of steps we "
-          << "have extracted in the vernier scans. This is a major problem, and "
-          << "this instance: " << this_name_ << " will undoubtibly crash." << std::endl;
+        << "have extracted in the vernier scans. This is a major problem, and "
+        << "this instance: " << this_name_ << " will undoubtibly crash." << std::endl;
     } else {
       if(horizontal_scan_first_) { // horizontal scan is first
         if((unsigned int)step_i < planned_beam_separation_.size()/2) { // first half
@@ -310,19 +311,19 @@ int BeamWidthTime::MakeScanSteps(){
   } // End over epoch step boundaries (dimension == number of scanning steps)
   global_output_ << "Beam Width Data" << std::endl;
   global_output_
-      << "step:" << std::setw(4) << "N"
-      << std::setw(11) << "bbc_rate"
-      << std::setw(11) << "bbc_sys" 
-      << std::setw(11) << "bbc_stat"
-      << std::setw(11) << "planned_x"
-      << std::setw(11) << "bpm_x" 
-      << std::setw(11) << "bpm_x_sys"
-      << std::setw(11) << "bpm_x_stat"
-      << std::setw(11) << "planned_y"
-      << std::setw(11) << "bpm_y" 
-      << std::setw(11) << "bpm_y_sys"
-      << std::setw(11) << "bpm_y_stat"
-      << std::endl;
+    << "step:" << std::setw(4) << "N"
+    << std::setw(11) << "bbc_rate"
+    << std::setw(11) << "bbc_sys" 
+    << std::setw(11) << "bbc_stat"
+    << std::setw(11) << "planned_x"
+    << std::setw(11) << "bpm_x" 
+    << std::setw(11) << "bpm_x_sys"
+    << std::setw(11) << "bpm_x_stat"
+    << std::setw(11) << "planned_y"
+    << std::setw(11) << "bpm_y" 
+    << std::setw(11) << "bpm_y_sys"
+    << std::setw(11) << "bpm_y_stat"
+    << std::endl;
   step_i = 0;
   // Planned steps return to the same x_planned, y_planned coordinate, and we 
   // know this to be 0,0. ROOT does not know how to deal with this, because we set a point
@@ -353,13 +354,13 @@ int BeamWidthTime::MakeScanSteps(){
   horizontal_scan_step_->SetName("horizontal_scan_step_");
   std::stringstream title;
   title << "Horizontal Scan, Run: " << run_number_ << ";separation (microns);bbc rate (Hz)";
-      horizontal_scan_step_->SetTitle(title.str().c_str());
+  horizontal_scan_step_->SetTitle(title.str().c_str());
 
   vertical_scan_step_ = new TGraphErrors();  
   vertical_scan_step_->SetName("vertical_scan_step_");
   title.str("");
   title << "Vertical Scan, Run: " << run_number_ << ";separation (microns);bbc rate (Hz)";
-      vertical_scan_step_->SetTitle(title.str().c_str());
+  vertical_scan_step_->SetTitle(title.str().c_str());
   whole_scan_step_ = new TGraph2DErrors();     
   whole_scan_step_->SetName("whole_scan_step_");
   title.str("");
@@ -377,7 +378,7 @@ int BeamWidthTime::MakeScanSteps(){
   title.str("");
   title << "Vertical Scan, planned steps, Run: " << run_number_ << ";separation(microns);bbc rate (Hz)"; 
   planned_vertical_scan_step_->SetTitle(title.str().c_str());
-  
+
   whole_scan_planned_step_ = new TGraph2DErrors();     
   whole_scan_planned_step_->SetName("whole_scan_planned_step_");
   title.str("");
@@ -430,7 +431,7 @@ int BeamWidthTime::MakeScanSteps(){
     std::vector<double>* disp_2;
     std::vector<double>* rate_1;
     std::vector<double>* rate_2;
-    
+
     if(horizontal_scan_first_) {
       scan_1_sep = bw.x;
       scan_1_sep_err = x_err;
@@ -499,7 +500,7 @@ int BeamWidthTime::MakeScanSteps(){
   mean_rate/=n;
   err = pow(err,0.5);
   for(unsigned int i = 0; i < planned_rate_overlap.size(); i++){
-     rms += fabs(mean_rate - planned_rate_overlap[i]);
+    rms += fabs(mean_rate - planned_rate_overlap[i]);
   }
   rms/=n;
   err = pow(rms*rms + err*err,0.5);
@@ -528,7 +529,7 @@ int BeamWidthTime::FitBeamWidth() {
   global_output_ << "  Rate (hscan)    : (Min,Max) (" << min_rate_x << ", " << max_rate_x << ")" << std::endl;
   global_output_ << "  Rate (vscan)    : (Min,Max) (" << min_rate_y << ", " << max_rate_y << ")" << std::endl;
   global_output_ << "  Planned Scan    : (Min,Max) (" << min_disp_plan << ", " << max_disp_plan << ")" << std::endl;
-  
+
   fit_beam_width_x_gaus_       = new TF1("fit_beam_width_x_gaus_","gaus",min_disp_x,max_disp_x);
   fit_beam_width_y_gaus_       = new TF1("fit_beam_width_y_gaus_","gaus",min_disp_y,max_disp_y);
   fit_beam_width_plan_x_gaus_  = new TF1("fit_beam_width_plan_x_gaus_","gaus",min_disp_plan,max_disp_plan);
@@ -562,7 +563,7 @@ int BeamWidthTime::FitBeamWidth() {
   fit_beam_width_y_gaus_     ->SetParameter("Constant" , constant_y_gaus_      );
   fit_beam_width_plan_x_gaus_->SetParameter("Constant" , constant_plan_x_gaus_ );
   fit_beam_width_plan_y_gaus_->SetParameter("Constant" , constant_plan_y_gaus_ );
-  
+
   fit_beam_width_x_gaus_     ->SetParLimits(1 , -1.0*sigma_x_gaus_       , sigma_x_gaus_             );
   fit_beam_width_y_gaus_     ->SetParLimits(1 , -1.0*sigma_y_gaus_       , sigma_y_gaus_             );
   fit_beam_width_plan_x_gaus_->SetParLimits(1 , -1.0*sigma_plan_x_gaus_  , sigma_plan_x_gaus_        );
@@ -588,34 +589,38 @@ int BeamWidthTime::FitBeamWidth() {
 
   if(x_gaus_ptr->IsValid()) {
     global_output_ << "1D gaussian fit for horizontal scan is a success!" << std::endl;
+    horizontal_width_ = fit_beam_width_x_gaus_->GetParameter("Sigma");
   } else {
     global_output_ << "1D gaussian fit for horizontal scan is a failure!" << std::endl;
     std::cerr << "Cannot fit horizontal beam width slice, multidimensional fit will have bad seed values!"
-	    << std::endl;
+      << std::endl;
     //return 1;
   }
   if(y_gaus_ptr->IsValid()) {
     global_output_ << "1D gaussian fit for vertical scan is a success!" << std::endl;
+    vertical_width_ = fit_beam_width_y_gaus_->GetParameter("Sigma");
   } else {
     global_output_ << "1D gaussian fit for vertical scan is a failure!" << std::endl;
     std::cerr << "Cannot fit vertical beam width slice, multidimensional fit will have bad seed values!"
-	    << std::endl;
+      << std::endl;
     //return 1;
   }
   if(x_gaus_plan_ptr->IsValid()) {
     global_output_ << "1D gaussian fit for horizontal scan (planned steps) is a success!" << std::endl;
+    horizontal_width_ = fit_beam_width_plan_x_gaus_->GetParameter("Sigma");
   } else {
     global_output_ << "1D gaussian fit for horizontal scan (planned steps) is a failure!" << std::endl;
     std::cerr << "Cannot fit horizontal beam width slice (planned steps), multidimensional fit will have bad seed values!"
-	    << std::endl;
+      << std::endl;
     //return 1;
   }
   if(y_gaus_plan_ptr->IsValid()) {
     global_output_ << "1D gaussian fit for vertical scan (planned steps) is a success!" << std::endl;
+    vertical_width_ = fit_beam_width_plan_y_gaus_->GetParameter("Sigma");
   } else {
     global_output_ << "1D gaussian fit for vertical scan (planned steps) is a failure!" << std::endl;
     std::cerr << "Cannot fit vertical beam width slice (planned steps), multidimensional fit will have bad seed values!"
-	    << std::endl;
+      << std::endl;
     //return 1;
   }
 
@@ -643,10 +648,12 @@ int BeamWidthTime::FitBeamWidth() {
   TFitResultPtr xy_gaus_ptr = whole_scan_step_    ->Fit(fit_beam_width_xy_gaus_,"RS"); 
   if(xy_gaus_ptr->IsValid()) {
     global_output_ << "2D gaussian fit is a success!" << std::endl;
+    horizontal_width_ = fit_beam_width_xy_gaus_->GetParameter(2);
+    vertical_width_ = fit_beam_width_xy_gaus_->GetParameter(4);
   } else {
     global_output_ << "2D gaussian fit is a failure!" << std::endl;
   }
-  
+
   // Determine inner/outer fit ranges for the planned beam widths 
   // Use the 1D plots as a seed for the 2D plots
   x_mean  = fit_beam_width_plan_x_gaus_->GetParameter("Mean");
@@ -655,7 +662,7 @@ int BeamWidthTime::FitBeamWidth() {
   y_mean  = fit_beam_width_plan_y_gaus_->GetParameter("Mean");
   y_const = fit_beam_width_plan_y_gaus_->GetParameter("Constant");
   y_sigma = fit_beam_width_plan_y_gaus_->GetParameter("Sigma");
-  
+
   avg_const = (x_const+y_const)*0.5;
   fit_beam_width_plan_xy_gaus_->SetParameter(0, avg_const);
   fit_beam_width_plan_xy_gaus_->SetParameter(1, x_mean   );
@@ -672,6 +679,8 @@ int BeamWidthTime::FitBeamWidth() {
   TFitResultPtr xy_gaus_plan_ptr = whole_scan_planned_step_->Fit(fit_beam_width_plan_xy_gaus_,"RS"); 
   if(xy_gaus_ptr->IsValid()) {
     global_output_ << "2D gaussian fit is a (planned steps) success!" << std::endl;
+    horizontal_width_ = fit_beam_width_plan_xy_gaus_->GetParameter(2);
+    vertical_width_ = fit_beam_width_plan_xy_gaus_->GetParameter(4);
   } else {
     global_output_ << "2D gaussian fit is a (planned steps) failure!" << std::endl;
   }
@@ -686,8 +695,8 @@ int BeamWidthTime::FitBeamWidth() {
   return 0;
 }
 
-
 int BeamWidthTime::SaveFigures(const std::string& figure_output_dir) {
+  gErrorIgnoreLevel = kWarning;
   std::string tfile_name = figure_output_dir + "/" + run_number_ + "_BeamWidthPlots.root"; 
   std::string pdf_name   = figure_output_dir + "/" + run_number_ + "_BeamWidthPlots.pdf";
   std::string out_file_name = pdf_name + "[";
@@ -713,6 +722,7 @@ int BeamWidthTime::SaveFigures(const std::string& figure_output_dir) {
   root_out->Write();
   root_out->Close();
   delete booklet;
+  gErrorIgnoreLevel = kInfo;
   return 0;
 }
 
@@ -767,15 +777,15 @@ int BeamWidthTime::MakePlannedStepsTable(const std::string& out_dir, const std::
       diff_t << "";
     }
     out_file 
-        << std::fixed << std::setprecision(2) << d.x_planned << " & " 
-        << std::fixed << std::setprecision(2) << d.x << " & " 
-        << std::fixed << std::setprecision(2) << diff_x.str() << " & "
-        << std::fixed << std::setprecision(2) << d.y_planned << " & " 
-        << std::fixed << std::setprecision(2) << d.y << " & "
-        << std::fixed << std::setprecision(2) << diff_y.str() << " & " 
-        << std::fixed << std::setprecision(2) << pow(d.x*d.x + d.y*d.y,0.5) << " & " 
-        << std::fixed << std::setprecision(2) << diff_t.str()
-        << "\\\\" << std::endl;
+      << std::fixed << std::setprecision(2) << d.x_planned << " & " 
+      << std::fixed << std::setprecision(2) << d.x << " & " 
+      << std::fixed << std::setprecision(2) << diff_x.str() << " & "
+      << std::fixed << std::setprecision(2) << d.y_planned << " & " 
+      << std::fixed << std::setprecision(2) << d.y << " & "
+      << std::fixed << std::setprecision(2) << diff_y.str() << " & " 
+      << std::fixed << std::setprecision(2) << pow(d.x*d.x + d.y*d.y,0.5) << " & " 
+      << std::fixed << std::setprecision(2) << diff_t.str()
+      << "\\\\" << std::endl;
   }
   out_file << "\\bottomrule" << std::endl;
   out_file << "\\end{tabular}" << std::endl;
@@ -784,5 +794,38 @@ int BeamWidthTime::MakePlannedStepsTable(const std::string& out_dir, const std::
   out_file << "\\end{table}" << std::endl;
   out_file.close();
 
+  return 0;
+}
+
+int BeamWidthTime::SaveBeamWidthData(const std::string& out_dir) {
+  std::stringstream out_file_name;
+  out_file_name << out_dir << "/"  << run_number_ << "_BeamWidthData.txt";
+  std::ofstream out_file(out_file_name.str().c_str());
+
+  out_file_name.str("");
+  out_file_name << out_dir << "/" << run_number_ << "_XOffsets.txt";
+  std::ofstream out_xoff(out_file_name.str().c_str());
+
+  out_file_name.str("");
+  out_file_name << out_dir << "/" << run_number_ << "_YOffsets.txt";
+  std::ofstream out_yoff(out_file_name.str().c_str());
+
+  out_file_name.str("");
+  out_file_name << out_dir << "/" << run_number_ << "_hWidth.txt";
+  std::ofstream out_hwidth(out_file_name.str().c_str());
+
+  out_file_name.str("");
+  out_file_name << out_dir << "/" << run_number_ << "_vWidth.txt"; 
+  std::ofstream out_vwidth(out_file_name.str().c_str());
+
+  out_hwidth << "HORIZONTAL_BEAM_WIDTH " << GetHorizontalBeamWidth()/10000. << std::endl; 
+
+  out_vwidth << "VERTICAL_BEAM_WIDTH " << GetVerticalBeamWidth()/10000. << std::endl;
+
+  for(auto i = beam_width_data_.begin(); i != beam_width_data_.end(); ++i) {
+    out_file << i->GetDataString() << std::endl;
+    out_xoff << "X_OFFSET "  << i->x_planned/1000. << std::endl; 
+    out_yoff << "Y_OFFSET "  << i->y_planned/1000. << std::endl;
+  }
   return 0;
 }

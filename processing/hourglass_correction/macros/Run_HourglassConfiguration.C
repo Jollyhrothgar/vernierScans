@@ -1,12 +1,15 @@
 #include "../../../FileManagement.h"
 
 int Run_HourglassConfiguration(
-  int run_index = 0,
-  const std::string lib = "libVernierHourglass.so"
 ) {
-  gSystem->Load(lib.c_str());
+  gSystem->Load("libVernierHourglass.so");
+  gSystem->Load("libVernierTimeAnalysis.so");
   HourglassConfiguration con;
   // Create All Config Files
+  for(int run_index = 0; run_index < NUMBER_OF_RUNS; run_index++) {
+    hd.Run();
+  }
+   
   con.ModifyConfigParameter("RUN_NUMBER","359711");
   con.SetDefaultValues();
   con.ShowConfigFile();

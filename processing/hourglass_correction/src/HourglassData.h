@@ -28,6 +28,7 @@ class HourglassData {
       );
   int Run();
   int SaveFigures(const std::string& output_dir); 
+  int SaveZDCCounts(const std::string& output_h);
  private:
   std::string run_number_;
   int LoadEpochStepBoundaries();

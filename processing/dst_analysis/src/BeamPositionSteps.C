@@ -74,6 +74,7 @@ time_t BeamPositionSteps::GetScanEndTime() {
   time = steps.back().second + GetTimeOffset();
   return time;
 }
+
 unsigned int BeamPositionSteps::GetNumberOfSteps() {
   return vernierScanBPMSteps.size(); 
 }

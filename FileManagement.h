@@ -7,6 +7,8 @@
 // There is nothing special about the run order, except that the same index in all arrays
 // access data for the same run.
 
+const int NUMBER_OF_RUNS = 7;
+
 std::string run_number[11] = {
   "359711",
   "360879",
@@ -151,6 +153,26 @@ std::string planned_beam_steps[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/365866_planned_steps.txt",
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/366605_planned_steps.txt",
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/367138_planned_steps.txt"
+};
+
+std::string beam_width_summary_data[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_BeamWidthData.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_BeamWidthData.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_BeamWidthData.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_BeamWidthData.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_BeamWidthData.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_BeamWidthData.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_BeamWidthData.txt"
+};
+
+std::string zdc_counts_per_step[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_ZDCCountsPerStep.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_ZDCCountsPerStep.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_ZDCCountsPerStep.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_ZDCCountsPerStep.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_ZDCCountsPerStep.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_ZDCCountsPerStep.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_ZDCCountsPerStep.txt"
 };
 
 #endif

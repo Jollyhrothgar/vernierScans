@@ -266,3 +266,15 @@ int HourglassData::SaveFigures( const std::string& figure_output_dir = "./") {
   gErrorIgnoreLevel = kInfo;
   return 0;
 }
+
+int HourglassData::SaveZDCCounts( const std::string& out_dir ) {
+  std::stringstream out_file_name;
+  out_file_name << out_dir << "/" << run_number_ << "_ZDCCountsPerStep.txt";
+  std::ofstream out_file(out_file_name.str().c_str());
+  for(auto i = zdc_z_vtx_.begin(); i != zdc_z_vtx_.end(); ++i) {
+    TH1F* h = i->second;
+    out_file << "ZDC_COUNTS " <<  h->GetEntries() << std::endl;
+  }
+  return 0;
+}
+

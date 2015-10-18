@@ -18,29 +18,31 @@ HourglassConfiguration::HourglassConfiguration() {
 HourglassConfiguration::~HourglassConfiguration() {
   std::cout << "Destroying: " << this_name << std::endl;
 }
+
 // determine the minimum number of libraries needed to fill params
 int HourglassConfiguration::GenerateEmptyConfigFile() {
-  config_["RUN_NUMBER"]                     = ""; // BeamWidthTime
-  config_["X_OFFSET"]                       = ""; // BeamWidthTime 
-  config_["Y_OFFSET"]                       = ""; // BeamWidthTime  
-  config_["ZDC_COUNTS"]                     = ""; // HourglassData
-  config_["AVG_NUMBER_IONS_BLUE_BEAM"]      = ""; // WcmDcct
-  config_["AVG_NUMBER_IONS_YELLOW_BEAM"]    = ""; // WcmDcct
-  config_["HORIZONTAL_BEAM_WIDTH"]          = ""; // BeamWidthTime
-  config_["VERTICAL_BEAM_WIDTH"]            = ""; // BeamWidthTime
-  config_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData
-  config_["BETA_STAR" ]                     = ""; // GOAL: find this
-  config_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this 
-  config_["FILLED_BUNCHES"]                 = ""; // Fixed
-  config_["BUNCH_CROSSING_FREQUENCY"]       = ""; // Fixed
-  config_["Z_PROFILE_SCALE_VALUE"]          = ""; // Fixed
-  config_["MULTIPLE_COLLISION_RATE"]        = ""; // wp SetDefaultValues
+  config_["RUN_NUMBER"]                     = ""; // FileManagement 
+  config_["ZDC_COUNTS"]                     = ""; // HourglassData * (done)
+  config_["X_OFFSET"]                       = ""; // BeamWidthTime * (done)
+  config_["Y_OFFSET"]                       = ""; // BeamWidthTime * (done)
+  config_["HORIZONTAL_BEAM_WIDTH"]          = ""; // BeamWidthTime (done)
+  config_["VERTICAL_BEAM_WIDTH"]            = ""; // BeamWidthTime (done)
+  config_["AVG_NUMBER_IONS_BLUE_BEAM"]      = ""; // WcmDcct (todo) 
+  config_["AVG_NUMBER_IONS_YELLOW_BEAM"]    = ""; // WcmDcct (todo)
+  config_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData 
+  config_["BETA_STAR" ]                     = ""; // GOAL: find this, SetDefaultValues
+  config_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this, SetDefaultValues
+  config_["FILLED_BUNCHES"]                 = ""; // Fixed, SetDefaultValues
+  config_["BUNCH_CROSSING_FREQUENCY"]       = ""; // Fixed, SetDefaultValues
+  config_["Z_PROFILE_SCALE_VALUE"]          = ""; // Fixed, SetDefaultValues
+  config_["MULTIPLE_COLLISION_RATE"]        = ""; // wp SetDefaultValues *
   config_["MAX_COLLISIONS"]                 = ""; // wp SetDefaultValues
   config_["Z_BUNCH_WIDTH_LEFT_GAUSSIAN"]    = ""; // wp SetDefaultValues
   config_["Z_BUNCH_WIDTH_RIGHT_GAUSIAN"]    = ""; // wp SetDefaultValues
   config_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = ""; // wp SetDefaultValues
   config_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = ""; // wp SetDefaultValues
   config_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = ""; // wp SetDefaultValues
+  // *these terms change based on the beam displaement
   return 0;
 }
 
@@ -62,13 +64,18 @@ int HourglassConfiguration::SetDefaultValues() {
 }
 
 int HourglassConfiguration::ModifyConfigParameter(const std::string& name, const std::string& val) {
-  auto search = config_.find(name);
-  if(search != config_.end()){
+  if(ParameterExists(name)){
     config_[name] = val;
   } else {
     std::cout << "Unrecognized configuration parameter, remember parameters are case-senstive: " << name << std::endl;
   }
   return 0;
+}
+
+bool HourglassConfiguration::ParameterExists(const std::string& par) {
+  auto search = config_.find(par);
+  if(search != config_.end() ) return true;
+  return false;
 }
 
 int HourglassConfiguration::SaveConfigFile(const std::string& out_dir ) {
@@ -79,6 +86,11 @@ int HourglassConfiguration::SaveConfigFile(const std::string& out_dir ) {
     out_file << i->first << " " << i->second << std::endl;
   }
   out_file.close();
+  return 0;
+}
+
+int HourglassConfiguration::BatchCreateConfigFile() {
+  std::cout << "Creating configuration files for steps in run: " << std::endl;
   return 0;
 }
 

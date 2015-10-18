@@ -16,5 +16,6 @@ int Run_HourglassData(
   );
   hd.Run();
   hd.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
+  hd.SaveZDCCounts("/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data");
   return 0;
 }

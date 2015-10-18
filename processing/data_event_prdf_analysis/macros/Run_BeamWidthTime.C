@@ -30,6 +30,7 @@ int Run_BeamWidthTime(
       );
   bws.Run();
   bws.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
+  bws.SaveBeamWidthData("/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data");
   bws.MakePlannedStepsTable("/direct/phenix+WWW/p/draft/beaumim/Vernier_Analysis/run_12_vernier_analysis_note/vernier/BeamPositionMonitoring/tables","plannedsteps");
   return 0;
 }

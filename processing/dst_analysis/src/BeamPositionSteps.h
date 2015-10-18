@@ -51,29 +51,32 @@ class BeamPositionSteps
     * time stamps. */
 
   int SaveEpochSteps(const std::string& out_file_directory);
-  /** takes the beam steps file that was loaded in LoadSteps and dumps epoch time
-   * to a different file. This is useful so that we don't have to drag around some
-   * offset time everywhere we want to compare step boundaries. Step boundaries based
-   * on BPM data will be most conservative, since BPM data rate is once every four
-   * seconds, as opposed to BBC data dumped from PRDFs, which is every second, or
-   * faster if event-sequence is used as a time proxy.
+  /** takes the beam steps file that was loaded in LoadSteps and dumps epoch time to a
+   * different file. This is useful so that we don't have to drag around some offset time
+   * everywhere we want to compare step boundaries. Step boundaries based on BPM data will
+   * be most conservative, since BPM data rate is once every four seconds, as opposed to
+   * BBC data dumped from PRDFs, which is every second, or faster if event-sequence is
+   * used as a time proxy.
    */
    
-   std::map<long int, BeamSeparationData> beam_separation_data_;
-   /** organize bpm data relevant to beam width into one structure 
-    * All uncertainties are determined by the average RMS of the beam
-    * for each step. */
    double bpm_global_rms_;
+   std::map<long int, BeamSeparationData> beam_separation_data_;
    std::map<long int, BeamSeparationData> GetBeamSeparationData();
+   /** beam_separation_data_ and GetBeamSeparationData : 
+    * organize bpm data relevant to beam width into one structure All uncertainties are
+    * determined by the average RMS of the beam for each step, but the actual data in the
+    * beam_separation_data_ object is organized in time. BeamSeparationData fills bpm_rms
+    * into BeamSeparationObject stored in beam_separation_data_ and returns the whole
+    * beam_separation_data_ object. Data is binned in time */
 
    int BeamPositionLookup(double time_lookup, double rejection_threshold, double& x_sep, double& y_sep); 
-   /** Intripolate the nearest beam position separation based on a 
-    * time-stamp lookup Return 0 if successful, 1 if not. This is used for raw bbc data
-    * dumped to a text file. x_sep and y_sep are modified, so you have to declare
-    * these variables ahead of time. rejection_threshold sets a threshold difference
-    * for the lookup - if the found time is rejection_threshold seconds away from
-    * the lookup, then the BeamPositionLookup will retun "1". When points match
-    * exactly, they are returned, otherwise we do a linear intripolation. */
+   /** Intripolate the nearest beam position separation based on a time-stamp lookup
+    * Return 0 if successful, 1 if not. This is used for raw bbc data dumped to a text
+    * file. x_sep and y_sep are modified, so you have to declare these variables ahead of
+    * time. rejection_threshold sets a threshold difference for the lookup - if the found
+    * time is rejection_threshold seconds away from the lookup, then the
+    * BeamPositionLookup will retun "1". When points match exactly, they are returned,
+    * otherwise we do a linear intripolation. */
    
    bool IsFirstScan(time_t time_index);
    /** These functions will determine, from the steps files, whether or not a time index
