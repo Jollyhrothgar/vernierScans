@@ -8,7 +8,6 @@ int Run_HourglassSimulation(
   HourglassSimulation sim;
   sim.Init();
   sim.Run();
-  sim.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
+  sim.SaveFigures(plots_dir);
   return 0;
 }
-	

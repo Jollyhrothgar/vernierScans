@@ -161,15 +161,19 @@ int HourglassData::InitHistograms() {
     std::stringstream name;
     std::stringstream title;
     name << "bbc_zvtx_step_" << i;
-    title << scan_name << " scan, " << displacement << " microns step, Run : " << run_number_ << ", BBC Z-vertex distribution;z-vertex;counts";
-    TH1F* bbc = new TH1F(name.str().c_str(),title.str().c_str(),nbins,min_zvtx,max_zvtx);
+    title << scan_name << " scan, " << displacement << " microns step, Run : "
+        << run_number_ << ", BBC Z-vertex distribution;z-vertex;counts";
+    TH1F* bbc = new
+        TH1F(name.str().c_str(),title.str().c_str(),nbins,min_zvtx,max_zvtx);
     bbc->Sumw2();
 
     name.str("");
     title.str("");
     name << "zdc_zvtx_step_" << i;
-    title << scan_name << " scan, " << displacement << " microns step, Run : " << run_number_ << ", ZDC Z-vertex distribution;z-vertex;counts";
-    TH1F* zdc = new TH1F(name.str().c_str(),title.str().c_str(),nbins,min_zvtx,max_zvtx);
+    title << scan_name << " scan, " << displacement << " microns step, Run : "
+        << run_number_ << ", ZDC Z-vertex distribution;z-vertex;counts";
+    TH1F* zdc = new
+        TH1F(name.str().c_str(),title.str().c_str(),nbins,min_zvtx,max_zvtx);
     zdc->Sumw2();
 
     bbc_z_vtx_.insert( std::pair<int,TH1F*>(i,bbc) );
@@ -215,14 +219,32 @@ int HourglassData::Run() {
       auto bbc = bbc_z_vtx_.find(step);
       auto zdc = zdc_z_vtx_.find(step);
       if( (bbc != bbc_z_vtx_.end() ) && (zdc != zdc_z_vtx_.end()) ) { 
-        if( ( d.trigscaled & bbc_wide_trig_bit ) > 0) { (bbc->second)->Fill(d.bbc_z); }
-        if( ( d.trigscaled & zdc_wide_trig_bit ) > 0) { (zdc->second)->Fill(d.zdc_z); }
+        if( ( d.trigscaled & bbc_wide_trig_bit ) > 0) {
+          (bbc->second)->Fill(d.bbc_z); 
+        } 
+        if( ( d.trigscaled & zdc_wide_trig_bit ) > 0) {
+          (zdc->second)->Fill(d.zdc_z); 
+        }
       }
     }
   } else {
     std::cerr << "could not open " << scalers_file_name_ << std::endl;
     return 1;
   } 
+  // Now obtain the BBC/ZDC calibration offset for maximal overlap
+  float bbc_zdc_offset = 0.;
+  float n_bbc_zdc_offset = 0.;
+  for(unsigned int i = 0; i < step_boundaries_.size(); i++) {
+    if(fabs(planned_steps_[i]) < 0.001) {
+      float offset = bbc_z_vtx_[i]->GetMean() - zdc_z_vtx_[i]->GetMean(); 
+      bbc_zdc_offset += offset;
+      n_bbc_zdc_offset += 1.0;
+      std::cout << "new bbc-zdc offset: " << offset << std::endl;
+    }
+  }
+  bbc_zdc_offset_ = bbc_zdc_offset/n_bbc_zdc_offset; 
+  std::cout << "Average bbc-zdc offset for max-overlap was: " <<
+      bbc_zdc_offset_ << std::endl;
   ShowOffsets();
   return 0;
 }
@@ -267,13 +289,19 @@ int HourglassData::SaveFigures( const std::string& figure_output_dir = "./") {
   return 0;
 }
 
-int HourglassData::SaveZDCCounts( const std::string& out_dir ) {
-  std::stringstream out_file_name;
-  out_file_name << out_dir << "/" << run_number_ << "_ZDCCountsPerStep.txt";
-  std::ofstream out_file(out_file_name.str().c_str());
+int HourglassData::SaveSimulationConfigData( const std::string& out_dir ) {
+  std::stringstream out_zdc_name;
+  out_zdc_name << out_dir << "/" << run_number_ << "_ZDCCountsPerStep.txt";
+  std::ofstream out_zdc(out_zdc_name.str().c_str());
+
+  std::stringstream out_zdc_bbc_offset;
+  out_zdc_bbc_offset << out_dir << "/" << run_number_ << "_BBCZDCOffset.txt";
+  std::ofstream out_bbc_zdc(out_zdc_bbc_offset.str().c_str());
+  out_bbc_zdc << "BBC_ZDC_Z_VERTEX_OFFSET " << bbc_zdc_offset_ << std::endl; 
+
   for(auto i = zdc_z_vtx_.begin(); i != zdc_z_vtx_.end(); ++i) {
     TH1F* h = i->second;
-    out_file << "ZDC_COUNTS " <<  h->GetEntries() << std::endl;
+    out_zdc << "ZDC_COUNTS " <<  h->GetEntries() << std::endl;
   }
   return 0;
 }

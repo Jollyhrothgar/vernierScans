@@ -28,28 +28,42 @@ class HourglassData {
       );
   int Run();
   int SaveFigures(const std::string& output_dir); 
-  int SaveZDCCounts(const std::string& output_h);
+  int SaveSimulationConfigData(const std::string& output_h);
  private:
   std::string run_number_;
   int LoadEpochStepBoundaries();
   int LoadPlannedSteps();
   int InitHistograms(); 
-  int ShowOffsets(); /** based on average value of histograms, show the average offset of
-  the BBC and ZDC z-vertex */
+
+  // based on average value of histograms, show the average offset of the BBC
+  // and ZDC z-vertex 
+  int ShowOffsets(); 
  
   BeamPositionSteps bpm_;
   std::vector<TObject*> plot_registry_;
   std::vector<std::pair<long int, long int> > step_boundaries_;
-  std::vector<float> planned_steps_; /** CAD planned total beam displacement */
+  
+  // CAD planned total beam displacements.
+  std::vector<float> planned_steps_; 
   std::string epoch_step_boundaries_file_name_;
   std::string bpm_planned_steps_file_name_;
   std::string scalers_file_name_;
-  std::map<int,TH1F*> bbc_z_vtx_; /** z-vertex distribution for each step */
-  std::map<int,TH1F*> zdc_z_vtx_; /** z-vertex distribution for each step */
+
+  // z-vertex distribution for each step 
+  std::map<int,TH1F*> bbc_z_vtx_; 
+
+  // z-vertex distribution for each step 
+  std::map<int,TH1F*> zdc_z_vtx_; 
   std::vector<double> h_steps_;
   std::vector<double> v_steps_;
-  std::vector< std::pair< double, bool > > displacement_; /** maps total beam displacement 
-  to bool 1 = mostly horizontal step, 0 = mostly vertical step*/
+
+  // The offset between the bbc zvertex reckoning and zdc z-vertex reckoning. If
+  // many offsets are availalble, the average is used.
+  float bbc_zdc_offset_;
+
+  //  maps total beam displacement to bool 1 = mostly horizontal step, 0 =
+  //  mostly vertical step
+  std::vector< std::pair< double, bool > > displacement_;
 };
 
 #endif

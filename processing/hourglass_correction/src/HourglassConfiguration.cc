@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <vector>
 
 HourglassConfiguration::HourglassConfiguration() {
   std::stringstream ss;
@@ -89,11 +90,6 @@ int HourglassConfiguration::SaveConfigFile(const std::string& out_dir ) {
   return 0;
 }
 
-int HourglassConfiguration::BatchCreateConfigFile() {
-  std::cout << "Creating configuration files for steps in run: " << std::endl;
-  return 0;
-}
-
 int HourglassConfiguration::LoadConfigFile(const std::string& in_file_name) {
   std::ifstream in_file(in_file_name.c_str());
   if(in_file) {
@@ -118,11 +114,123 @@ int HourglassConfiguration::ShowConfigFile() {
 
 std::string HourglassConfiguration::GetConfigName() {
   std::stringstream name;
-  name                 << config_["RUN_NUMBER"]     << "_" 
-      << "hoff"        << config_["X_OFFSET"]       << "_"
-      << "voff"        << config_["Y_OFFSET"]       << "_"
-      << "betastar"    << config_["BETA_STAR"]      << "_"
+  name              << config_["RUN_NUMBER"]     << "_" 
+      << "hoff"     << config_["X_OFFSET"]       << "_"
+      << "voff"     << config_["Y_OFFSET"]       << "_"
+      << "betastar" << config_["BETA_STAR"]      << "_"
       << "crossing" << config_["CROSSING_ANGLE_XZ"] << "_" 
       << "hourglass_sim.conf";
   return name.str();
+}
+
+int HourglassConfiguration::BatchCreateConfigFiles(
+  const std::string& run_number_,
+  const std::string& zdc_counts_per_step_file,
+  const std::string& x_offsets_file,
+  const std::string& y_offsets_file,
+  const std::string& h_width_file,
+  const std::string& v_width_file,
+  const std::string& beam_population_file, 
+  const std::string& sim_config_out_dir
+  ) {
+  SetDefaultValues();
+  config_["RUN_NUMBER"] = run_number_;
+
+  std::vector< std::map < std::string, std::string > > xoff;
+  std::vector< std::map < std::string, std::string > > yoff;
+  std::vector< std::map < std::string, std::string > > zdc_count;
+
+  std::ifstream in_zdc(zdc_counts_per_step_file.c_str());
+  std::ifstream in_xoff(x_offsets_file.c_str());
+  std::ifstream in_yoff(y_offsets_file.c_str());
+  std::ifstream in_hwidth(h_width_file.c_str());
+  std::ifstream in_vwidth(v_width_file.c_str());
+  std::ifstream in_beam(beam_population_file.c_str());
+
+  // Check for bad file handles
+  if(!in_zdc) {
+    std::cerr << "couldn't open " << zdc_counts_per_step_file << std::endl;
+    return 1;
+  } 
+  if(!in_xoff) {
+    std::cerr << "couldn't open " << x_offsets_file << std::endl;
+    return 1;
+  } 
+  if(!in_yoff) {
+    std::cerr << "couldn't open " << y_offsets_file << std::endl;
+    return 1;
+  } 
+  if(!in_hwidth) { 
+    std::cerr << "couldn't open " << h_width_file << std::endl;
+    return 1;
+  } 
+  if(!in_vwidth) {
+    std::cerr << "couldn't open " << v_width_file << std::endl;
+    return 1;
+  } 
+  if(!in_beam) {
+    std::cerr << "couldn't open " << beam_population_file << std::endl;
+    return 1;
+  } 
+  // Load ZDC steps
+  std::string key;
+  std::string val;
+  while(in_zdc >> key >> val) {
+    std::map<std::string,std::string> m;
+    m[key] = val;
+    zdc_count.push_back(m);
+  }
+  in_zdc.close();
+
+  // Load xoff steps
+  while(in_xoff >> key >> val) {
+    std::map<std::string,std::string> m;
+    m[key] = val;
+    xoff.push_back(m);
+  }
+  in_xoff.close();
+
+  // Load yoff steps
+  while(in_yoff >> key >> val ) {
+    std::map<std::string,std::string> m;
+    m[key] = val;
+    yoff.push_back(m);
+  }
+  in_yoff.close();
+  unsigned const int number_of_steps = zdc_count.size();
+  if( (xoff.size() != number_of_steps) && (yoff.size() != number_of_steps) ) {
+    std::cerr << "You have inconsistant numbers of steps in your config parameter files:" << std::endl;
+    std::cerr << x_offsets_file << " : " << xoff.size() << std::endl;
+    std::cerr << y_offsets_file << " : " << yoff.size() << std::endl;
+    std::cerr << zdc_counts_per_step_file << " : " << zdc_count.size() << std::endl;
+    return 1;
+  } 
+  std::cout << "Generating config files for run: " << config_["RUN_NUMBER"];
+  std::cout << "Sending config files to: " << sim_config_out_dir << std::endl;
+  
+  while(in_hwidth >> key >> val ) {
+    ModifyConfigParameter(key,val);
+  }
+  in_hwidth.close();
+  while(in_vwidth >> key >> val ) {
+    ModifyConfigParameter(key,val);
+  }
+  in_vwidth.close();
+  while(in_beam >> key >> val) {
+    ModifyConfigParameter(key,val);
+  }
+  in_beam.close();
+
+  for(unsigned int i = 0; i < number_of_steps; i++) {
+    auto xoff_step = xoff[i]; // get the map
+    auto yoff_step = yoff[i];
+    auto zdc_step  = zdc_count[i]; 
+
+    ModifyConfigParameter(xoff_step.begin()->first,xoff_step.begin()->second);
+    ModifyConfigParameter(yoff_step.begin()->first,yoff_step.begin()->second);
+    ModifyConfigParameter(zdc_step.begin()->first ,zdc_step.begin()->second );
+    auto config_name = GetConfigName();
+  }
+
+  return 0;
 }
