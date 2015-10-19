@@ -13,6 +13,7 @@ const int NUMBER_OF_RUNS = 7;
 // Global File Output
 const std::string simulation_config_dir = "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/simulation_config";
 const std::string plots_dir = "/direct/phenix+spin2/beaumim/vernierScans/plots";
+const std::string summary_dir = "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data";
 
 std::string run_number[11] = {
   "359711",

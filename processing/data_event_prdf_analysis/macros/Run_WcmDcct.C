@@ -2,11 +2,10 @@
 
 void Run_WcmDcct(
     int run_index = 0,
-    const std::string WdmSaveFile = "/direct/phenix+spin2/beaumim/vernierScans/vernier_analysis/figs/WCM_DCCT_Plots_360879.root",
-    const std::string& vernierAnalysisLibrary = "libVernierTimeAnalysis.so"
+    const std::string& lib = "libVernierTimeAnalysis.so"
     )
 {
-  gSystem->Load(vernierAnalysisLibrary.c_str());
+  gSystem->Load(lib.c_str());
   WcmDcctManager wdm;
   wdm.Init(
       run_number[run_index],
@@ -31,7 +30,7 @@ void Run_WcmDcct(
   std::cout << "Lost " << lumi_pct_loss*100.0 << " percent luminosity!" << std::endl;
   wdm.ShowSummary();
   wdm.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
-  wdm.SaveBeamPopulations("/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data");
+  wdm.SaveBeamPopulations(summary_dir);
   //wdm.PrintDataTimeIndex(1330279088);
   //wdm.PrintDataTimeIndex(1330279088);
   //wdm.PrintBlueWcmTotal();

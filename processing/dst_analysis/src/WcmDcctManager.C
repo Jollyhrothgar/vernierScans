@@ -9,6 +9,8 @@
 #include "TError.h"
 #include <cmath>
 #include <algorithm>
+#include <iomanip>
+#include <set>
 const int WcmDcctManager::NUMBER_OF_BUNCHES = 120;
 
 WcmDcctManager::WcmDcctManager() {
@@ -337,18 +339,33 @@ int WcmDcctManager::ShowSummary() {
   float average_yell_bunch_pop = 0.;
   float n_filled_blue = 0.;
   float n_filled_yell = 0.;
+  std::set<int> empty_bunches;
   for(int i = 0; i < 120; i++) {
     float bunch_blue = wcm_dist_blue_[i]->GetMean();
     float bunch_yell = wcm_dist_yell_[i]->GetMean();
-    if(fabs(bunch_blue) >  10.) {
+  // Diagnostic Output
+  // std::cout << "Bunch_" << std::setw(3) << i 
+  //         << " blue: " << std::setw(8) << bunch_blue 
+  //         << " yell: " << std::setw(8) << bunch_yell 
+  //         << " probable empty crossing (if zero): " << std::setw(8) << bunch_blue * bunch_yell << std::endl;
+    if(fabs(bunch_blue) >  5.0) {
       average_blue_bunch_pop += bunch_blue;
       n_filled_blue++;
+    } else {
+      empty_bunches.insert(i);
     }
-    if(fabs(bunch_yell) > 10.0) {
+    if(fabs(bunch_yell) > 5.0) {
       average_yell_bunch_pop += bunch_yell;
       n_filled_yell++;
+    } else {
+      empty_bunches.insert(i);
     }
   }
+  std::cout << "Blue or Yellow Empty Bunches cause effective empty bunch crossing for bunches: ";
+  for(auto i = empty_bunches.begin(); i!=empty_bunches.end(); ++i) {
+    std::cout << *i << ", ";
+  }
+  std::cout << std::endl;
   std::cout << "Average blue beam bunch population: " << average_blue_bunch_pop/n_filled_blue << "e9 ions" << std::endl;
   std::cout << "Filled Bunches Blue: " << n_filled_blue << std::endl;
   std::cout << "Average yell beam bunch population: " << average_yell_bunch_pop/n_filled_yell << "e9 ions" << std::endl;
