@@ -48,7 +48,7 @@ int HourglassConfiguration::GenerateEmptyConfigFile() {
 }
 
 int HourglassConfiguration::SetDefaultValues() {
-  config_["NUMBER_OF_BUNCHES"]              = "109";
+  config_["NUMBER_OF_BUNCHES"]              = "107";
   config_["BUNCH_CROSSING_FREQUENCY"]       = "78213.";
   config_["Z_PROFILE_SCALE_VALUE"]          = "1.5";
   config_["MAX_COLLISIONS"]                 = "5.";
@@ -231,6 +231,5 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     ModifyConfigParameter(zdc_step.begin()->first ,zdc_step.begin()->second );
     auto config_name = GetConfigName();
   }
-
   return 0;
 }

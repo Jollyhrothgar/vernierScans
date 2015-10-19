@@ -28,8 +28,7 @@ void Run_WcmDcct(
   wdm.Run();
   double lumi_pct_loss = wdm.GetLuminosityLoss();
   std::cout << "Lost " << lumi_pct_loss*100.0 << " percent luminosity!" << std::endl;
-  wdm.ShowSummary();
-  wdm.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
+  wdm.SaveFigures(plots_dir);
   wdm.SaveBeamPopulations(summary_dir);
   //wdm.PrintDataTimeIndex(1330279088);
   //wdm.PrintDataTimeIndex(1330279088);

@@ -271,6 +271,7 @@ int VernierDSTReduction::process_event(PHCompositeNode *topNode)
   BbcSouthTubes  = bbcout->get_nPmt(Bbc::South);
 
   gl1crossingID  = d_sde->GetGL1PCrossingID(0);
+  gl1crossingID  = (gl1crossingID+5)%120; // Correct for standard PHENIX crossing shift
   bbcll1         = d_sde->GetGL1PScalerCount(0,0); // This is not the novtx trigger - this is literally "BBCLL1(>0 tubes)"
   gl1clock       = d_sde->GetGL1PScalerCount(0,1);
   ZDCWide        = d_sde->GetGL1PScalerCount(0,2);

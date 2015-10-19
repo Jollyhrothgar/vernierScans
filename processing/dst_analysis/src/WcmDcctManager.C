@@ -306,6 +306,7 @@ int WcmDcctManager::Run() {
   MakePlots(yellow_beam);
   FitRateLoss();
   CalculateLuminosityLoss();
+  GetSummaryStatistics();
   return 0;
 }
 
@@ -333,7 +334,7 @@ int WcmDcctManager::LoadDcct() {
   return 0; 
 }
 
-int WcmDcctManager::ShowSummary() {
+int WcmDcctManager::GetSummaryStatistics() {
   std::cout << "WCM/DCCT Summary: " << std::endl;
   float average_blue_bunch_pop = 0.;
   float average_yell_bunch_pop = 0.;
@@ -370,9 +371,11 @@ int WcmDcctManager::ShowSummary() {
   std::cout << "Filled Bunches Blue: " << n_filled_blue << std::endl;
   std::cout << "Average yell beam bunch population: " << average_yell_bunch_pop/n_filled_yell << "e9 ions" << std::endl;
   std::cout << "Filled Bunches Yell: " << n_filled_yell << std::endl;
+  std::cout << "Effective filled bunches: " << 120 - empty_bunches.size() << std::endl;
 
   blue_beam_population_ = average_blue_bunch_pop/n_filled_blue;
   yellow_beam_population_ = average_yell_bunch_pop/n_filled_yell;
+  filled_bunch_crossings_ = 120-empty_bunches.size();
 
   return 0;
 }
@@ -686,5 +689,6 @@ int WcmDcctManager::SaveBeamPopulations(const std::string& out_dir) {
   std::ofstream out_file(out_file_name.str().c_str());
   out_file << "AVG_NUMBER_IONS_BLUE_BEAM "   << blue_beam_population_ << std::endl;
   out_file << "AVG_NUMBER_IONS_YELLOW_BEAM " << yellow_beam_population_ << std::endl;
+  out_file << "NUMBER_OF_FILLED_BUNCHES " << filled_bunch_crossings_ << std::endl;
   return 0;
 }

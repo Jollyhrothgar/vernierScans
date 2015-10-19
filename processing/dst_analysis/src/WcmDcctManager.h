@@ -60,8 +60,6 @@ class WcmDcctManager{
   // returns luminosity_loss_ 
   double GetLuminosityLoss();
 
-  // prints out summary for average bunch information.
-  int ShowSummary(); 
   
   // Saves blue beam and yellow beam average populations to a text file for use
   // in HourglassConfiguration
@@ -72,6 +70,9 @@ class WcmDcctManager{
   std::string this_name_; 
   std::vector<TObject*> save_registry_;
   std::vector<TObject*> bunch_registry_;
+  
+  // prints out summary for average bunch information.
+  int GetSummaryStatistics(); 
 
   // loop over data for general characteristics of run. called in ::Run, so that
   // you can initialize with a time boundary which differs from the default 
@@ -85,10 +86,14 @@ class WcmDcctManager{
   // required initialization
   int InitPlots(const int beam_choice);
                                        
-  // average blue beam population
+  // average blue beam population based on corrected wcm sum
   float blue_beam_population_;
-  // average yellow beam population
+
+  // average yellow beam population based on corrected wcm sum
   float yellow_beam_population_;
+
+  // number of non-empty bunch-crossings
+  int filled_bunch_crossings_;
 
   // Called in ::Run so that optional initialization can take place after
   // required initialization
