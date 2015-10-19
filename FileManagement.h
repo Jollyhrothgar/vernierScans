@@ -175,4 +175,54 @@ std::string zdc_counts_per_step[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_ZDCCountsPerStep.txt"
 };
 
+std::string x_offset_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_XOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_XOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_XOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_XOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_XOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_XOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_XOffsets.txt"
+};
+
+std::string y_offset_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_YOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_YOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_YOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_YOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_YOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_YOffsets.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_YOffsets.txt"
+};
+
+std::string v_width_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_vWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_vWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_vWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_vWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_vWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_vWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_vWidth.txt"
+};
+
+std::string h_width_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_hWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_hWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_hWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_hWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_hWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_hWidth.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_hWidth.txt",
+};
+
+std::string beam_population_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_WCMDCCT_BeamPopulation.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_WCMDCCT_BeamPopulation.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_WCMDCCT_BeamPopulation.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_WCMDCCT_BeamPopulation.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_WCMDCCT_BeamPopulation.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_WCMDCCT_BeamPopulation.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_WCMDCCT_BeamPopulation.txt"
+};
+
 #endif
