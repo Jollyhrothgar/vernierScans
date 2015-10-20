@@ -125,6 +125,7 @@ std::string HourglassConfiguration::GetConfigName() {
 
 int HourglassConfiguration::BatchCreateConfigFiles(
   const std::string& run_number_,
+  const std::string& zdc_bbc_offset_file,
   const std::string& zdc_counts_per_step_file,
   const std::string& x_offsets_file,
   const std::string& y_offsets_file,
@@ -140,6 +141,7 @@ int HourglassConfiguration::BatchCreateConfigFiles(
   std::vector< std::map < std::string, std::string > > yoff;
   std::vector< std::map < std::string, std::string > > zdc_count;
 
+  std::ifstream in_zdc_off(zdc_bbc_offset_file.c_str());
   std::ifstream in_zdc(zdc_counts_per_step_file.c_str());
   std::ifstream in_xoff(x_offsets_file.c_str());
   std::ifstream in_yoff(y_offsets_file.c_str());
@@ -148,6 +150,10 @@ int HourglassConfiguration::BatchCreateConfigFiles(
   std::ifstream in_beam(beam_population_file.c_str());
 
   // Check for bad file handles
+  if(!in_zdc_off) {
+    std::cerr << "couldn't open " << zdc_bbc_offset_file << std::endl;
+    return 1;
+  }
   if(!in_zdc) {
     std::cerr << "couldn't open " << zdc_counts_per_step_file << std::endl;
     return 1;
@@ -181,6 +187,12 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     zdc_count.push_back(m);
   }
   in_zdc.close();
+ 
+  // Load BBC ZDC offset
+  while(in_zdc_off >> key >> val) {
+    ModifyConfigParameter(key,val);
+  }
+  in_zdc_off.close();
 
   // Load xoff steps
   while(in_xoff >> key >> val) {
@@ -197,6 +209,25 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     yoff.push_back(m);
   }
   in_yoff.close();
+  
+  // Load horizontal width
+  while(in_hwidth >> key >> val ) {
+    ModifyConfigParameter(key,val);
+  }
+  in_hwidth.close();
+
+  // Load vertical width
+  while(in_vwidth >> key >> val ) {
+    ModifyConfigParameter(key,val);
+  }
+  in_vwidth.close();
+  
+  // load beam populations for blue and yellow
+  while(in_beam >> key >> val) {
+    ModifyConfigParameter(key,val);
+  }
+  in_beam.close();
+
   unsigned const int number_of_steps = zdc_count.size();
   if( (xoff.size() != number_of_steps) && (yoff.size() != number_of_steps) ) {
     std::cerr << "You have inconsistant numbers of steps in your config parameter files:" << std::endl;
@@ -207,20 +238,6 @@ int HourglassConfiguration::BatchCreateConfigFiles(
   } 
   std::cout << "Generating config files for run: " << config_["RUN_NUMBER"];
   std::cout << "Sending config files to: " << sim_config_out_dir << std::endl;
-  
-  while(in_hwidth >> key >> val ) {
-    ModifyConfigParameter(key,val);
-  }
-  in_hwidth.close();
-  while(in_vwidth >> key >> val ) {
-    ModifyConfigParameter(key,val);
-  }
-  in_vwidth.close();
-  while(in_beam >> key >> val) {
-    ModifyConfigParameter(key,val);
-  }
-  in_beam.close();
-
   for(unsigned int i = 0; i < number_of_steps; i++) {
     auto xoff_step = xoff[i]; // get the map
     auto yoff_step = yoff[i];

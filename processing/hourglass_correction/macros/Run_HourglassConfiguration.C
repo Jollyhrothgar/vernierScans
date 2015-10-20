@@ -9,6 +9,7 @@ int Run_HourglassConfiguration(
   // Create All Config Files
   config.BatchCreateConfigFiles(
     run_number[run_index],
+    zdc_bbc_offset_sim_config[run_index],
     zdc_counts_per_step[run_index],
     x_offset_sim_config[run_index],
     y_offset_sim_config[run_index],

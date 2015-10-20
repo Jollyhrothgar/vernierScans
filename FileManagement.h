@@ -231,4 +231,14 @@ std::string beam_population_sim_config[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_WCMDCCT_BeamPopulation.txt"
 };
 
+std::string zdc_bbc_offset_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_BBCZDCOffset.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_BBCZDCOffset.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_BBCZDCOffset.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_BBCZDCOffset.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_BBCZDCOffset.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_BBCZDCOffset.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_BBCZDCOffset.txt"
+};
+
 #endif

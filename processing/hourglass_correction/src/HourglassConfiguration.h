@@ -40,6 +40,7 @@ class HourglassConfiguration{
   // BeamWidthTime  : creates [xy]_offsets_file, [hv]_width_file
   int BatchCreateConfigFiles(
     const std::string& run_number_,
+    const std::string& bbc_zdc_offset_file,
     const std::string& zdc_counts_per_step_file,
     const std::string& x_offsets_file,
     const std::string& y_offsets_file,
