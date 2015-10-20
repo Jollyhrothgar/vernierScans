@@ -1,0 +1,22 @@
+#!/bin/csh
+condor_submit vernier_job_0.job
+condor_submit vernier_job_1.job
+condor_submit vernier_job_10.job
+condor_submit vernier_job_11.job
+condor_submit vernier_job_12.job
+condor_submit vernier_job_13.job
+condor_submit vernier_job_14.job
+condor_submit vernier_job_15.job
+condor_submit vernier_job_16.job
+condor_submit vernier_job_17.job
+condor_submit vernier_job_18.job
+condor_submit vernier_job_19.job
+condor_submit vernier_job_2.job
+condor_submit vernier_job_20.job
+condor_submit vernier_job_3.job
+condor_submit vernier_job_4.job
+condor_submit vernier_job_5.job
+condor_submit vernier_job_6.job
+condor_submit vernier_job_7.job
+condor_submit vernier_job_8.job
+condor_submit vernier_job_9.job

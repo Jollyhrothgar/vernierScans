@@ -22,13 +22,20 @@ Makefile.in
 *.so
 *dict*
 
-# condor log stuff + shell scripts for reduce_data/dst_reduction/macros/condor area
+# condor log stuff + shell scripts for vernierScans/reduce_data/dst_reduction/macros/condor area
 Vernier_*.sh
 Vernier_*.out
 Vernier_*.err
 Vernier_*.log
 Vernier_*.job
 Vernier_*.csh
+
+# condor log stuff + shell scripts for vernierScans/condor
+vernier_job_*.csh
+vernier_job_*.out
+vernier_job_*.job
+vernier_job_*.err
+vernier_job_*.log
 jobs
 logs
 setup.conf
