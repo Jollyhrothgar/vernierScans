@@ -9,7 +9,7 @@
 
 HourglassConfiguration::HourglassConfiguration() {
   std::stringstream ss;
-  ss << "HourglassConfiguration_0x" << std::hex << this;
+  ss << "HourglassConfiguration_" << std::hex << this;
   this_name = ss.str();
   GenerateEmptyConfigFile();
   std::cout << "Instantiating " << this_name << std::endl;
@@ -22,51 +22,70 @@ HourglassConfiguration::~HourglassConfiguration() {
 
 // determine the minimum number of libraries needed to fill params
 int HourglassConfiguration::GenerateEmptyConfigFile() {
-  config_["RUN_NUMBER"]                     = ""; // FileManagement 
-  config_["ZDC_COUNTS"]                     = ""; // HourglassData * (done)
-  config_["X_OFFSET"]                       = ""; // BeamWidthTime * (done)
-  config_["Y_OFFSET"]                       = ""; // BeamWidthTime * (done)
-  config_["HORIZONTAL_BEAM_WIDTH"]          = ""; // BeamWidthTime (done)
-  config_["VERTICAL_BEAM_WIDTH"]            = ""; // BeamWidthTime (done)
-  config_["AVG_NUMBER_IONS_BLUE_BEAM"]      = ""; // WcmDcct (todo) 
-  config_["AVG_NUMBER_IONS_YELLOW_BEAM"]    = ""; // WcmDcct (todo)
-  config_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData (done)
-  config_["BETA_STAR" ]                     = ""; // GOAL: find this, SetDefaultValues
-  config_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this, SetDefaultValues
-  config_["FILLED_BUNCHES"]                 = ""; // Fixed, SetDefaultValues
-  config_["BUNCH_CROSSING_FREQUENCY"]       = ""; // Fixed, SetDefaultValues
-  config_["Z_PROFILE_SCALE_VALUE"]          = ""; // Fixed, SetDefaultValues
-  config_["MULTIPLE_COLLISION_RATE"]        = ""; // wp SetDefaultValues *
-  config_["MAX_COLLISIONS"]                 = ""; // wp SetDefaultValues
-  config_["Z_BUNCH_WIDTH_LEFT_GAUSSIAN"]    = ""; // wp SetDefaultValues
-  config_["Z_BUNCH_WIDTH_RIGHT_GAUSIAN"]    = ""; // wp SetDefaultValues
-  config_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = ""; // wp SetDefaultValues
-  config_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = ""; // wp SetDefaultValues
-  config_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = ""; // wp SetDefaultValues
+  par_["RUN_NUMBER"]                     = ""; // FileManagement  
+  par_["ZDC_COUNTS"]                     = ""; // HourglassData * (done)
+  par_["X_OFFSET"]                       = ""; // BeamWidthTime * (done)
+  par_["Y_OFFSET"]                       = ""; // BeamWidthTime * (done)
+  par_["HORIZONTAL_BEAM_WIDTH"]          = ""; // BeamWidthTime (done)
+  par_["VERTICAL_BEAM_WIDTH"]            = ""; // BeamWidthTime (done)
+  par_["AVG_NUMBER_IONS_BLUE_BEAM"]      = ""; // WcmDcct (todo) 
+  par_["AVG_NUMBER_IONS_YELLOW_BEAM"]    = ""; // WcmDcct (todo)
+  par_["BBC_ZDC_Z_VERTEX_OFFSET"]        = ""; // HourglassData (done)
+  par_["ZDC_VERTEX_DISTRIBUTION_NAME"]   = ""; // HourglassData (done)
+  par_["BETA_STAR" ]                     = ""; // GOAL: find this, SetDefaultValues
+  par_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this, SetDefaultValues
+  par_["FILLED_BUNCHES"]                 = ""; // Fixed, SetDefaultValues
+  par_["BUNCH_CROSSING_FREQUENCY"]       = ""; // Fixed, SetDefaultValues
+  par_["Z_PROFILE_SCALE_VALUE"]          = ""; // Fixed, SetDefaultValues
+  par_["MULTIPLE_COLLISION_RATE"]        = ""; // wp SetDefaultValues *
+  par_["MAX_COLLISIONS"]                 = ""; // wp SetDefaultValues
+  par_["Z_BUNCH_WIDTH_LEFT_GAUSSIAN"]    = ""; // wp SetDefaultValues
+  par_["Z_BUNCH_WIDTH_RIGHT_GAUSIAN"]    = ""; // wp SetDefaultValues
+  par_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = ""; // wp SetDefaultValues
+  par_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = ""; // wp SetDefaultValues
+  par_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = ""; // wp SetDefaultValues
   // *these terms change based on the beam displaement
   return 0;
 }
 
 int HourglassConfiguration::SetDefaultValues() {
-  config_["NUMBER_OF_BUNCHES"]              = "107";
-  config_["BUNCH_CROSSING_FREQUENCY"]       = "78213.";
-  config_["Z_PROFILE_SCALE_VALUE"]          = "1.5";
-  config_["MAX_COLLISIONS"]                 = "5.";
-  config_["BETA_STAR"]                      = "85.";
-  config_["CROSSING_ANGLE_XZ"]              = "8.0e-5";
-  config_["MULTIPLE_COLLISION_RATE"]        = "0.001";
-  config_["MAX_COLLISIONS"]                 = "5";
-  config_["Z_BUNCH_WIDTH_LEFT_GAUSSIAN"]    = "36.15";
-  config_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = "27.65";
-  config_["Z_BUNCH_WIDTH_RIGHT_GAUSIAN"]    = "55.95";
-  config_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = "-70.2";
-  config_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = "56.7";
+  // Default values are set to the first scan step of Run 359711, a vernier scan
+  // from Run 12.
+  ModifyConfigParameter("RUN_NUMBER"                    , "359711");
+  ModifyConfigParameter("ZDC_COUNTS"                    , "891");
+  ModifyConfigParameter("X_OFFSET"                      , "-0.1");
+  ModifyConfigParameter("Y_OFFSET"                      , "0.0");
+  ModifyConfigParameter("HORIZONTAL_BEAM_WIDTH"         , "0.0245674");
+  ModifyConfigParameter("VERTICAL_BEAM_WIDTH"           , "0.0238342");
+  ModifyConfigParameter("AVG_NUMBER_IONS_BLUE_BEAM"     , "120.029e9");
+  ModifyConfigParameter("AVG_NUMBER_IONS_YELLOW_BEAM"   , "88.167e9");
+  ModifyConfigParameter("BBC_ZDC_Z_VERTEX_OFFSET"       , "9.38");
+  ModifyConfigParameter("ZDC_VERTEX_DISTRIBUTION_NAME"  , "zdc_zvtx_step_0");
+  ModifyConfigParameter("BETA_STAR"                     , "85.");
+  ModifyConfigParameter("CROSSING_ANGLE_XZ"             , "0.08e-3");
+  ModifyConfigParameter("FILLED_BUNCHES"                , "107");
+  ModifyConfigParameter("BUNCH_CROSSING_FREQUENCY"      , "78213.");
+  ModifyConfigParameter("Z_PROFILE_SCALE_VALUE"         , "1.5");
+  ModifyConfigParameter("MULTIPLE_COLLISION_RATE"       , "0.001");
+  ModifyConfigParameter("MAX_COLLISIONS"                , "5");
+  ModifyConfigParameter("Z_BUNCH_WIDTH_LEFT_GAUSSIAN"   , "35.15"); 
+  ModifyConfigParameter("Z_BUNCH_WIDTH_RIGHT_GAUSIAN"   , "27.65"); 
+  ModifyConfigParameter("Z_BUNCH_WIDTH_CENTRAL_GAUSIAN" , "55.95"); 
+  ModifyConfigParameter("Z_BUNCH_WIDTH_LEFT_OFFSET"     , "-70.2"); 
+  ModifyConfigParameter("Z_BUNCH_WIDTH_RIGHT_OFFSET"    , "56.7"); 
   return 0;
+}
+
+std::string HourglassConfiguration::GetPar( const std::string&  par_name ) {
+  if(ParameterExists(par_name)) {
+    return par_[par_name];
+  }
+  return "-9999";
 }
 
 int HourglassConfiguration::ModifyConfigParameter(const std::string& name, const std::string& val) {
   if(ParameterExists(name)){
-    config_[name] = val;
+    par_[name] = val;
   } else {
     std::cout << "Unrecognized configuration parameter, remember parameters are case-senstive: " << name << std::endl;
   }
@@ -74,8 +93,8 @@ int HourglassConfiguration::ModifyConfigParameter(const std::string& name, const
 }
 
 bool HourglassConfiguration::ParameterExists(const std::string& par) {
-  auto search = config_.find(par);
-  if(search != config_.end() ) return true;
+  auto search = par_.find(par);
+  if(search != par_.end() ) return true;
   return false;
 }
 
@@ -83,7 +102,7 @@ int HourglassConfiguration::SaveConfigFile(const std::string& out_dir ) {
   std::stringstream out_file_name;
   out_file_name << out_dir << "/" << GetConfigName();
   std::ofstream out_file(out_file_name.str().c_str());
-  for(auto i = config_.begin(); i != config_.end(); ++i){
+  for(auto i = par_.begin(); i != par_.end(); ++i){
     out_file << i->first << " " << i->second << std::endl;
   }
   out_file.close();
@@ -93,10 +112,19 @@ int HourglassConfiguration::SaveConfigFile(const std::string& out_dir ) {
 int HourglassConfiguration::LoadConfigFile(const std::string& in_file_name) {
   std::ifstream in_file(in_file_name.c_str());
   if(in_file) {
-    std::string key;
-    std::string val;
-    while(in_file >> key >> val) {
-      ModifyConfigParameter(key,val);
+    std::string line;
+    while(getline(in_file,line)) {
+      //debug std::cout << line << std::endl;
+      std::vector<std::string> tokens;
+      std::string token;
+      std::istringstream iss(line.c_str());
+      while(getline(iss,token,' ')) { tokens.push_back(token); }
+      if(tokens.size() != 2 ) {
+        std::cout << "FILE " << in_file_name << " IS NOT FULLY INITIALIZED. CANNOT USE FOR SIMULATIONS!" << std::endl;
+	return 1;
+      } else {
+        ModifyConfigParameter(tokens[0],tokens[1]);
+      }
     }
   } else {
     std::cout << "Could not load config file: " << in_file_name << std::endl;
@@ -106,7 +134,7 @@ int HourglassConfiguration::LoadConfigFile(const std::string& in_file_name) {
 
 int HourglassConfiguration::ShowConfigFile() {
   std::cout << "CONFIGURATION FILE: " << GetConfigName() << std::endl;
-  for(auto i = config_.begin(); i != config_.end(); ++i) {
+  for(auto i = par_.begin(); i != par_.end(); ++i) {
     std::cout << i->first << " = " << i->second << std::endl;
   }
   return 0;
@@ -114,11 +142,11 @@ int HourglassConfiguration::ShowConfigFile() {
 
 std::string HourglassConfiguration::GetConfigName() {
   std::stringstream name;
-  name              << config_["RUN_NUMBER"]     << "_" 
-      << "hoff"     << config_["X_OFFSET"]       << "_"
-      << "voff"     << config_["Y_OFFSET"]       << "_"
-      << "betastar" << config_["BETA_STAR"]      << "_"
-      << "crossing" << config_["CROSSING_ANGLE_XZ"] << "_" 
+  name              << par_["RUN_NUMBER"]     << "_" 
+      << "hoff"     << par_["X_OFFSET"]       << "_"
+      << "voff"     << par_["Y_OFFSET"]       << "_"
+      << "betastar" << par_["BETA_STAR"]      << "_"
+      << "crossing" << par_["CROSSING_ANGLE_XZ"] << "_" 
       << "hourglass_sim.conf";
   return name.str();
 }
@@ -132,14 +160,16 @@ int HourglassConfiguration::BatchCreateConfigFiles(
   const std::string& h_width_file,
   const std::string& v_width_file,
   const std::string& beam_population_file, 
+  const std::string& zdc_vertex_histo_name_file,
   const std::string& sim_config_out_dir
   ) {
   SetDefaultValues();
-  config_["RUN_NUMBER"] = run_number_;
+  par_["RUN_NUMBER"] = run_number_;
 
   std::vector< std::map < std::string, std::string > > xoff;
   std::vector< std::map < std::string, std::string > > yoff;
   std::vector< std::map < std::string, std::string > > zdc_count;
+  std::vector< std::map < std::string, std::string > > zdc_hist_name;
 
   std::ifstream in_zdc_off(zdc_bbc_offset_file.c_str());
   std::ifstream in_zdc(zdc_counts_per_step_file.c_str());
@@ -148,6 +178,7 @@ int HourglassConfiguration::BatchCreateConfigFiles(
   std::ifstream in_hwidth(h_width_file.c_str());
   std::ifstream in_vwidth(v_width_file.c_str());
   std::ifstream in_beam(beam_population_file.c_str());
+  std::ifstream in_zdc_histo_name(zdc_vertex_histo_name_file.c_str());
 
   // Check for bad file handles
   if(!in_zdc_off) {
@@ -178,6 +209,9 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     std::cerr << "couldn't open " << beam_population_file << std::endl;
     return 1;
   } 
+  if(!in_zdc_histo_name) {
+    std::cerr << "couldd't open " << zdc_vertex_histo_name_file << std::endl;
+  }
   // Load ZDC steps
   std::string key;
   std::string val;
@@ -193,6 +227,13 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     ModifyConfigParameter(key,val);
   }
   in_zdc_off.close();
+
+  // Load ZDC histogram names for comparison to simulation
+  while(in_zdc_histo_name >> key >> val) {
+    std::map< std::string, std::string > m;
+    m[key] = val;
+    zdc_hist_name.push_back(m);
+  }
 
   // Load xoff steps
   while(in_xoff >> key >> val) {
@@ -236,17 +277,20 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     std::cerr << zdc_counts_per_step_file << " : " << zdc_count.size() << std::endl;
     return 1;
   } 
-  std::cout << "Generating config files for run: " << config_["RUN_NUMBER"];
+  std::cout << "Generating config files for run: " << par_["RUN_NUMBER"];
   std::cout << "Sending config files to: " << sim_config_out_dir << std::endl;
   for(unsigned int i = 0; i < number_of_steps; i++) {
     auto xoff_step = xoff[i]; // get the map
     auto yoff_step = yoff[i];
     auto zdc_step  = zdc_count[i]; 
+    auto zdc_hist  = zdc_hist_name[i];
 
-    ModifyConfigParameter(xoff_step.begin()->first,xoff_step.begin()->second);
-    ModifyConfigParameter(yoff_step.begin()->first,yoff_step.begin()->second);
-    ModifyConfigParameter(zdc_step.begin()->first ,zdc_step.begin()->second );
+    ModifyConfigParameter(xoff_step.begin()->first , xoff_step.begin()->second);
+    ModifyConfigParameter(yoff_step.begin()->first , yoff_step.begin()->second);
+    ModifyConfigParameter(zdc_step .begin()->first , zdc_step .begin()->second );
+    ModifyConfigParameter(zdc_hist .begin()->first , zdc_hist .begin()->second );
     auto config_name = GetConfigName();
+    SaveConfigFile(sim_config_out_dir);
   }
   return 0;
 }

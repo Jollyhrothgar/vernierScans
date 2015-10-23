@@ -16,8 +16,10 @@ int Run_HourglassConfiguration(
     h_width_sim_config[run_index],
     v_width_sim_config[run_index],
     beam_population_sim_config[run_index],
+    zdc_zvtx_histo_name_sim_config[run_index],
     simulation_config_dir
     );
+  // Shows the last internal configuration of HourglassConfiguration
   config.ShowConfigFile();
 
   // Running one config file -- example

@@ -1,5 +1,5 @@
-#ifndef __CONFIGURATION__
-#define __CONFIGTUATION__
+#ifndef __HOURGLASS_CONFIGURATION__
+#define __HOURGLASS_CONFIGURATION__
 
 #include<string>
 #include <map>
@@ -20,6 +20,12 @@ class HourglassConfiguration{
   int SaveConfigFile(const std::string& out_dir);
   int ShowConfigFile();
   int SetDefaultValues();
+
+  // Returns the value mapped to key, par_name, in par_
+  std::string GetPar( const std::string&  par_name );
+
+  // Returns a copy of the config map
+  std::map<std::string,std::string> GetAllPar() {return par_;};
 
   // BatchCreateConfigFiles
   // This member creates all the configuration files neccessary for simulating
@@ -47,6 +53,7 @@ class HourglassConfiguration{
     const std::string& h_width_file,
     const std::string& v_width_file,
     const std::string& beam_population_file, 
+    const std::string& zdc_vertex_histo_name_file,
     const std::string& sim_config_out_dir
   );
 
@@ -58,9 +65,9 @@ class HourglassConfiguration{
   bool ParameterExists(const std::string& par);
 
  private:
-  std::map<std::string,std::string> config_;
-  /** config_: maps config parameter to config value. Conversion handled with
-   * stringstreams. */
+  // par_: maps config parameter to config value. Conversion handled with
+  // stringstreams.
+  std::map<std::string,std::string> par_;
 };
 
 #endif

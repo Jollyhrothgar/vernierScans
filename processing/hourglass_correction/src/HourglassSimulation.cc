@@ -1,11 +1,11 @@
 #include "HourglassSimulation.h"
+#include "HourglassConfiguration.h"
 
-#include<iostream>
 #include <cstdlib>
-#include<fstream>
-#include<cmath>
-#include<ctime>
-#include<math.h>
+#include <fstream>
+#include <cmath>
+#include <ctime>
+#include <math.h>
 #include <chrono> 
 #include <map>
 #include <vector> 
@@ -13,11 +13,14 @@
 #include <iostream>
 #include <sstream>
 #include <iostream>
+#include <string>
+#include <iomanip>
 
 #include "TF1.h"
 #include "TH1F.h"
 #include "TFile.h"
 #include "TCanvas.h"
+#include "TPaveText.h"
 
 #define PI 3.14159265
 
@@ -30,9 +33,10 @@ std::chrono::milliseconds GetTime() {
 
 HourglassSimulation::HourglassSimulation() {
   std::stringstream ss;
-  ss << "HourglassSimulation_0x" << std::hex << this;
+  ss << "HourglassSimulation_" << std::hex << this;
   this_name = ss.str();
   std::cout << "Instantiating " << this_name << std::endl;
+  override_save_file_ = false;
 }
 
 HourglassSimulation::~HourglassSimulation() {
@@ -42,33 +46,8 @@ HourglassSimulation::~HourglassSimulation() {
   }
 }
 
-int HourglassSimulation::Init() {
-  /** scan configuration */
-  run_number_ = "359711";
-  xoff = 0.1; 
-  yoff = 0.0;  
-  count_norm = 592;
-  rate = 0.001; 
-  max_coll = 5 + 1;
-
-  /** variables for z-t ~Gaussian distribution of intial beam profile */
-  n_bunch = 109;
-  freq = 78213.0;
-  scale = 1.5; // What is this for..? wp
-  Np = 120.0e9; // blue
-  Nm = 88.0e9;  // yellow
-  sigma_xstar = 0.0243/sqrt(2.0); // From run 12 scan (no weighting on beam width)
-  sigma_ystar = 0.0237/sqrt(2.0); 
-  sigma_zl = 35.15*scale; // need to use WCM profile directly.
-  sigma_zc = 27.65*scale; 
-  sigma_zr = 55.95*scale;  
-  mu_zl = -70.2*scale ; 
-  mu_zr =  56.7*scale; 
-  z_vtx_off = 9.38; // wp was -35.25, maybe use difference at maxmial overlap for everything??
-  beta_star = 85; // wp was 85
-  angle = 8.e-5; // wp was -0.08e-3
-
-  /** Defining spatial corrdinates, to be used in arrays */
+int HourglassSimulation::InitSpacetime() {
+  // Defining spatial corrdinates, to be used in arrays
   z_low = -300.0;
   z_high = 300.0;
   z_range = z_high - z_low;
@@ -86,16 +65,231 @@ int HourglassSimulation::Init() {
   N_bin_z = 600;
   N_bin_x = 60;
   N_bin_y = 60;
-  binsizeG = z_range/N_bin_z;
+  binsizeZ = z_range/N_bin_z;
   binsizeX = x_range/N_bin_x;
   binsizeY = y_range/N_bin_y;
   binsizeT = t_range/N_bin_t;
-  /** End spatial discreetization */
-  
-  zvertex = new TH1F("zvertex_simulation","Z Vertex ZDC Profile Simulation;z vertex;counts",50,z_low,z_high);
-  save_registry_.push_back(zvertex);
   return 0;
 }
+
+int HourglassSimulation::ShowConfig() {
+  std::cout << "HOURGLASS SIMULATION CONFIGURATION" << std::endl;
+  std::cout
+    << std::setw(30) << "RUN_NUMBER" << std::setw(20) <<  run_number_ << std::endl
+    << std::setw(30) << "ZDC_COUNTS" << std::setw(20) <<  count_norm << std::endl
+    << std::setw(30) << "X_OFFSET" << std::setw(20) <<  xoff << std::endl
+    << std::setw(30) << "Y_OFFSET" << std::setw(20) <<  yoff << std::endl
+    << std::setw(30) << "HORIZONTAL_BEAM_WIDTH" << std::setw(20) << sigma_x << std::endl
+    << std::setw(30) << "VERTICAL_BEAM_WIDTH" << std::setw(20)   << sigma_y << std::endl
+    << std::setw(30) << "AVG_NUMBER_IONS_BLUE_BEAM" << std::setw(20) <<  N_blue << std::endl
+    << std::setw(30) << "AVG_NUMBER_IONS_YELLOW_BEAM" << std::setw(20) <<  N_yell << std::endl
+    << std::setw(30) << "BBC_ZDC_Z_VERTEX_OFFSET" << std::setw(20) <<  z_vtx_off << std::endl
+    << std::setw(30) << "BETA_STAR" << std::setw(20) <<  beta_star << std::endl
+    << std::setw(30) << "CROSSING_ANGLE_XZ" << std::setw(20) <<  angle << std::endl
+    << std::setw(30) << "FILLED_BUNCHES" << std::setw(20) <<  n_bunch << std::endl
+    << std::setw(30) << "BUNCH_CROSSING_FREQUENCY" << std::setw(20) <<  freq << std::endl
+    << std::setw(30) << "Z_PROFILE_SCALE_VALUE" << std::setw(20) <<  scale << std::endl
+    << std::setw(30) << "MULTIPLE_COLLISION_RATE" << std::setw(20) <<  rate << std::endl
+    << std::setw(30) << "MAX_COLLISIONS" << std::setw(20) <<  max_coll << std::endl
+    << std::setw(30) << "Z_BUNCH_WIDTH_LEFT_GAUSSIAN" << std::setw(20) <<  sigma_zl << std::endl
+    << std::setw(30) << "Z_BUNCH_WIDTH_RIGHT_GAUSIAN" << std::setw(20) <<  sigma_zr << std::endl
+    << std::setw(30) << "Z_BUNCH_WIDTH_CENTRAL_GAUSIAN" << std::setw(20) <<  sigma_zc << std::endl
+    << std::setw(30) << "Z_BUNCH_WIDTH_LEFT_OFFSET" << std::setw(20) <<  mu_zl  << std::endl
+    << std::setw(30) << "Z_BUNCH_WIDTH_RIGHT_OFFSET" << std::setw(20) <<  mu_zr << std::endl;
+  return 0;
+}
+
+int HourglassSimulation::InitConfig() {
+  run_number_ = config_.GetPar("RUN_NUMBER");
+  count_norm  = std::stoi(config_.GetPar("ZDC_COUNTS"));
+  xoff        = std::stod(config_.GetPar("X_OFFSET"));
+  yoff        = std::stod(config_.GetPar("Y_OFFSET"));
+  sigma_x     = std::stod(config_.GetPar("HORIZONTAL_BEAM_WIDTH"));
+  sigma_y     = std::stod(config_.GetPar("VERTICAL_BEAM_WIDTH")  );
+  sigma_xstar = sigma_x/pow(2,0.5); // applying constants in lumi calculation
+  sigma_ystar = sigma_x/pow(2,0.5); // applying constants in lumi calculation
+  N_blue      = std::stod(config_.GetPar("AVG_NUMBER_IONS_BLUE_BEAM"));
+  N_yell      = std::stod(config_.GetPar("AVG_NUMBER_IONS_YELLOW_BEAM"));
+  z_vtx_off   = std::stod(config_.GetPar("BBC_ZDC_Z_VERTEX_OFFSET"));
+  beta_star   = std::stod(config_.GetPar("BETA_STAR" ));
+  angle       = std::stod(config_.GetPar("CROSSING_ANGLE_XZ"));
+  n_bunch     = std::stod(config_.GetPar("FILLED_BUNCHES"));
+  freq        = std::stod(config_.GetPar("BUNCH_CROSSING_FREQUENCY"));
+  scale       = std::stod(config_.GetPar("Z_PROFILE_SCALE_VALUE"));
+  rate        = std::stod(config_.GetPar("MULTIPLE_COLLISION_RATE"));
+  max_coll    = std::stod(config_.GetPar("MAX_COLLISIONS"));
+  MAX_COLL    = max_coll + 1;
+  sigma_zl    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_LEFT_GAUSSIAN")  );
+  sigma_zr    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_RIGHT_GAUSIAN")  );
+  sigma_zc    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"));
+  mu_zl       = std::stod(config_.GetPar("Z_BUNCH_WIDTH_LEFT_OFFSET")    );
+  mu_zr       = std::stod(config_.GetPar("Z_BUNCH_WIDTH_RIGHT_OFFSET")   );
+  sc_sigma_zl = sigma_zl*scale; // applying constants in lumi calculation
+  sc_sigma_zr = sigma_zr*scale; // applying constants in lumi calculation
+  sc_sigma_zc = sigma_zc*scale; // applying constants in lumi calculation
+  sc_mu_zl    = mu_zl   *scale; // applying constants in lumi calculation
+  sc_mu_zr    = mu_zr   *scale; // applying constants in lumi calculation
+  zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
+  return 0;
+}
+
+int HourglassSimulation::InitFromConfig(const std::string& config_file) {
+  HourglassConfiguration config;
+  config.LoadConfigFile(config_file);
+  config_ = config;
+  InitConfig();
+  return 0;
+}
+
+int HourglassSimulation::InitDefaultConfig() {
+  HourglassConfiguration config;
+  config.SetDefaultValues();
+  config_ = config;
+  InitConfig();
+  return 0;
+}
+
+int HourglassSimulation::Compare(
+    const std::string& compare_file_name, 
+    const std::string& out_file 
+) {
+  TFile* data = new TFile(compare_file_name.c_str(), "READ");
+  if(!data) {
+    std::cout << compare_file_name << " could not be opened by " << this_name
+        << " for comparison." << std::endl;
+    return 1;
+  }
+  TH1F* data_hist = (TH1F*) data->Get(zdc_compare_histo_name_.c_str());
+  if( !data_hist ) {
+    std::cout << "opened " << compare_file_name << " but couldn't find " 
+        << zdc_compare_histo_name_ << " to extract." << std::endl;
+    return 1;
+  }
+  data_hist->SetLineColor(kBlue);
+  TH1F* data_norm = (TH1F*)data_hist->Clone("zdc_zvertex_data_norm");
+  data_norm->SetDirectory(0);
+  double data_scale = 1.0/data_norm->Integral();
+  data_norm->Scale(data_scale);
+
+  TH1F* sim_norm = (TH1F*)zdc_zvertex_sim->Clone("zdc_zvertex_sim_norm");
+  sim_norm->SetDirectory(0);
+  double sim_scale = 1.0/sim_norm->Integral();
+  sim_norm->Scale(sim_scale);
+
+  std::cout << "Normalization of data: " << data_scale << ", and sim: " 
+      << sim_scale << std::endl;
+  std::cout << "If normalization is different between distributions, "
+      << "there may be a problem with the simulation." << std::endl;
+  std::cout << "Norm Difference: " << data_scale - sim_scale << std::endl;
+
+  TFile* compare_file = new TFile(out_file.c_str(),"RECREATE");
+  TCanvas* zvertex_comparison_canvas = 
+      new TCanvas("zvertex_comparison_canvas",
+                  "Data/Simulation Comparison",
+                  800,600);
+  TCanvas* simulation_config_canvas = 
+      new TCanvas("simulation_config_canvas",
+                  "Configuration For Simulation",
+                  800,600);
+  TCanvas* config_and_vertex_compare = 
+      new TCanvas("config_and_vertex_compare",
+                  "Configuration Parameters + ZVertex",
+                  1600,800);
+  config_and_vertex_compare->Divide(2,1);
+  TCanvas* norm_config_and_vertex_compare = 
+      new TCanvas("norm_config_and_vertex_compare",
+                  "Normalized Vertex Distribution for Simulation and Data",
+                  1600,800);
+  norm_config_and_vertex_compare->Divide(2,1);
+
+  TPaveText* config_text = new TPaveText(0.1,.1,.9,.9,"br");
+  auto pars = config_.GetAllPar();
+  for(auto i = pars.begin(); i != pars.end(); ++i) {
+    std::string par = i->first;
+    std::string val = i->second;
+    std::string line = par + " " + val;
+    config_text->AddText(line.c_str());
+  }
+  config_and_vertex_compare->cd(1);
+  config_text->Draw();
+  config_and_vertex_compare->cd(2);
+  data_hist->Draw();
+  zdc_zvertex_sim->Draw("same");
+
+  norm_config_and_vertex_compare->cd(1);
+  config_text->Draw();
+  norm_config_and_vertex_compare->cd(2);
+  data_norm->Draw();
+  sim_norm->Draw("same");
+
+  simulation_config_canvas->cd();
+  config_text->Draw();
+  config_text->Write();
+
+  zvertex_comparison_canvas->cd();
+  data_hist->Draw();
+  zdc_zvertex_sim->Draw("same");
+
+  compare_file->cd();
+  simulation_config_canvas->Write();
+  compare_file->cd();
+  zdc_zvertex_sim->Write();
+  data_hist->Write();
+  zvertex_comparison_canvas->Write();
+  config_and_vertex_compare->Write();
+  data_norm->Write();
+  sim_norm->Write();
+  norm_config_and_vertex_compare->Write();
+  compare_file->Write();
+
+  delete zvertex_comparison_canvas;
+  delete config_text;
+  delete simulation_config_canvas;
+  delete config_and_vertex_compare;
+  delete norm_config_and_vertex_compare;
+  delete compare_file;
+  return 0;
+}
+// Hardcode Configuration here, used for last-resort debugging
+int HourglassSimulation::InitDefault() {
+// DEFAULT Configuration - max x offset for 359711
+
+  /** scan configuration */
+  run_number_ = "359711";
+  xoff = -0.1; 
+  yoff = 0.0;  
+  count_norm = 891;
+  rate = 0.001; 
+  MAX_COLL = 5 + 1;
+
+  /** variables for z-t ~Gaussian distribution of intial beam profile */
+  n_bunch = 107;
+  freq = 78213.0;
+  scale = 1.5; // What is this for..? wp
+  N_blue = 120.029e9; // blue
+  N_yell = 88.167e9;  // yellow
+  sigma_xstar = 0.0245674/sqrt(2.0); // From run 12 scan (no weighting on beam width)
+  sigma_ystar = 0.0238342/sqrt(2.0); 
+  sc_sigma_zl = 35.15*scale; // need to use WCM profile directly.
+  sc_sigma_zc = 27.65*scale; 
+  sc_sigma_zr = 55.95*scale;  
+  sc_mu_zl = -70.2*scale ; 
+  sc_mu_zr =  56.7*scale; 
+  z_vtx_off = 9.38; // 
+  beta_star = 85; // 85
+  angle = -0.08e-3; // wp was -0.08e-3
+  return 0;
+}
+
+int HourglassSimulation::InitPlots() {
+  zdc_zvertex_sim = new TH1F("zdc_zvertex_sim","Z Vertex ZDC Profile Simulation;z vertex;counts",50,z_low,z_high);
+  zdc_zvertex_sim->SetLineColor(kRed);
+  zdc_zvertex_sim->SetLineWidth(2);
+  zdc_zvertex_sim->Sumw2();
+  save_registry_.push_back(zdc_zvertex_sim);
+  return 0;
+}
+
 int HourglassSimulation::Factorial(int n){ 
   if (n > 1) return n * Factorial(n - 1);
   else return 1;
@@ -138,20 +332,18 @@ double HourglassSimulation::SmearZVertex(double rand_prob_res, double orig_z){
 }
 
 int HourglassSimulation::Run() {
+  // Final initialization
+  InitSpacetime();
+  InitPlots();
+  ShowConfig();
+
   // store various timestamps through out the execuation of the code, for 
   // bottleneck tracking.
   std::map<std::string, long long unsigned int > time_tracker;
   time_tracker["start"] = GetTime().count();
   long long unsigned int how_many_things = 0; 
 
-  std::stringstream zvtx_histo_data;
-  zvtx_histo_data << "MakeHisto.txt";
-
-  double poisson_dist[max_coll];
-  std::cout << "multiple collisions rate = " << rate << std::endl;
-  std::cout << "zdc accumulated counts   = " << count_norm << std::endl;
-  std::cout << "horizontal beam offset   = " << xoff << std::endl;
-  std::cout << "vertical beam offset     = " << yoff << std::endl;
+  double poisson_dist[MAX_COLL];
   double g;
   double norm;
   double ex_1l, ex_1c, ex_1r, ex_2l, ex_2c, ex_2r; // dividing luminosity integral into separable gaussian pieces
@@ -185,7 +377,7 @@ int HourglassSimulation::Run() {
 
   double tot_prob = 0.0; 
   //========================== creating an array with cumulative Poisson Disribution =================================
-  for(int no_count = 0; no_count < max_coll; ++no_count) { 
+  for(int no_count = 0; no_count < MAX_COLL; ++no_count) { 
     double p = ((exp(-rate))*(pow(rate, static_cast<double>(no_count))))/Factorial(no_count);
     if(p > 0.0) {
       tot_prob += p;
@@ -210,9 +402,9 @@ int HourglassSimulation::Run() {
     input_time[t_ct] = (t_low + static_cast<double>(t_ct)*binsizeT + binsizeT/2.0);
   }
   for(int z_ct = 0; z_ct < N_bin_z; z_ct++) {
-    position[z_ct] = (z_low + static_cast<double>(z_ct)*binsizeG + binsizeG/2.0); 
+    position[z_ct] = (z_low + static_cast<double>(z_ct)*binsizeZ + binsizeZ/2.0); 
     // check if I understand binning
-    // std::cout << z_ct << ": " << z_low << " + " << z_ct << " * " << binsizeG << " + " << binsizeG/2.0 << " = " << position[z_ct] << std::endl;
+    // std::cout << z_ct << ": " << z_low << " + " << z_ct << " * " << binsizeZ << " + " << binsizeZ/2.0 << " = " << position[z_ct] << std::endl;
   }
   for(int x_ct = 0; x_ct < N_bin_x; x_ct++) {
     xposition[x_ct] = (x_low + static_cast<double>(x_ct)*binsizeX + binsizeX/2.0); 
@@ -239,8 +431,8 @@ int HourglassSimulation::Run() {
       double cos_half_angle = cos(half_angle);
       sigma_xz = sigma_xstar*sqrt(1 + pow(cos_half_angle*position[cz]/beta_star, 2.0));//corrected for angle dependence, 2015
       sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle*position[cz]/beta_star, 2.0));//corrected for angle dependence, 2015
-      norm = ((n_bunch*freq*Np*Nm)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
-      double spacetime_norm = norm*binsizeX*binsizeY*binsizeG*vel*binsizeT;
+      norm = ((n_bunch*freq*N_blue*N_yell)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
+      double spacetime_norm = norm*binsizeX*binsizeY*binsizeZ*vel*binsizeT;
       for(int cx=0; cx<N_bin_x; cx++) {
         double ex_1l_term1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-xoff+half_angle*position[cz])/sigma_xz, 2.0));
         double ex_2l_term1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-half_angle*position[cz])/sigma_xz, 2.0));
@@ -258,29 +450,29 @@ int HourglassSimulation::Run() {
           double ex_term2_common = exp(-0.5*pow(yposition[cy]/sigma_yz,2.0));
           ex_1l = ex_1l_term1
               *ex_term2_common
-              *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle-mu_zl-vel*input_time[ct])/sigma_zl,2)))
-              *(1.0/sigma_zl);//corrected for rotaion in x-z plane, 2015
+              *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zl-vel*input_time[ct])/sc_sigma_zl,2)))
+              *(1.0/sc_sigma_zl);//corrected for rotaion in x-z plane, 2015
           ex_1c = ex_1l_term1
               *ex_term2_common
-              *2.157*exp(-0.5*(pow((position[cz]*cos_half_angle-vel*input_time[ct])/sigma_zc,2)))
-              *(1.0/sigma_zc);//corrected for rotaion in x-z plane, 2015
+              *2.157*exp(-0.5*(pow((position[cz]*cos_half_angle-vel*input_time[ct])/sc_sigma_zc,2)))
+              *(1.0/sc_sigma_zc);//corrected for rotaion in x-z plane, 2015
           ex_1r = ex_1l_term1
               *ex_term2_common
-              *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle-mu_zr-vel*input_time[ct])/sigma_zr,2)))
-              *(1.0/sigma_zr);
+              *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zr-vel*input_time[ct])/sc_sigma_zr,2)))
+              *(1.0/sc_sigma_zr);
           // Integrand second bunch
           ex_2l = ex_2l_term1
               *ex_term2_common
-              *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle+mu_zl+vel*input_time[ct])/sigma_zl,2)))
-              *(1.0/sigma_zl);
+              *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zl+vel*input_time[ct])/sc_sigma_zl,2)))
+              *(1.0/sc_sigma_zl);
           ex_2c = ex_2l_term1
               *ex_term2_common
-              *2.157*exp(-0.5*(pow((position[cz]*cos_half_angle+vel*input_time[ct])/sigma_zc,2)))
-              *(1.0/sigma_zc);
+              *2.157*exp(-0.5*(pow((position[cz]*cos_half_angle+vel*input_time[ct])/sc_sigma_zc,2)))
+              *(1.0/sc_sigma_zc);
           ex_2r = ex_2l_term1
               *ex_term2_common
-              *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle+mu_zr+vel*input_time[ct])/sigma_zr,2)))
-              *(1.0/sigma_zr);                       
+              *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zr+vel*input_time[ct])/sc_sigma_zr,2)))
+              *(1.0/sc_sigma_zr);                       
           g = (spacetime_norm*(ex_1l+ex_1c+ex_1r)*(ex_2l+ex_2c+ex_2r));
           /* END EXPENSIVE PART */
 
@@ -309,7 +501,6 @@ int HourglassSimulation::Run() {
   unsigned long int cross_count = 0;
   unsigned long int event_limit_count = 0;
   int nonzero_event_count = 0;//debugging
-  std::ofstream raw_zvtx_out(zvtx_histo_data.str().c_str());
   while((cross_count < 20000000) && (event_limit_count < (unsigned int)count_norm)) { 
     //=================== counting crossing number required to reach event limit =============
     cross_count++; 
@@ -317,7 +508,7 @@ int HourglassSimulation::Run() {
     temp_prob_poisson = fabs(static_cast<double>(rand())/RAND_MAX);
     condp = false;
     int l = 0;
-    while((condp == false) && (l < (max_coll - 1))) {
+    while((condp == false) && (l < (MAX_COLL - 1))) {
       if(temp_prob_poisson <= poisson_dist[0]) {
         N_coll = 0;
         condp = true;
@@ -397,8 +588,7 @@ int HourglassSimulation::Run() {
 
     if(smeared_zpos>-500.0) {//checking for junk value from smearing function
       event_limit_count++;//counting final recorded vertices
-      raw_zvtx_out << smeared_zpos+z_vtx_off << std::endl;
-      zvertex->Fill(smeared_zpos+z_vtx_off);
+      zdc_zvertex_sim->Fill(smeared_zpos+z_vtx_off);
     } else {
       std::cout << "could not get smeared posn, check code." << std::endl;
     }
@@ -406,7 +596,6 @@ int HourglassSimulation::Run() {
   time_tracker["phase_4"] = GetTime().count();
   std::cout << "phase_4" << std::endl;
   std::cout << "job done" << std::endl;
-  raw_zvtx_out.close();
   std::cout << "cross_count: " << cross_count << std::endl;
   std::cout << "event_limit_count: " << event_limit_count << std::endl;
   std::cout << "Finished profiling code." << std::endl;
@@ -423,13 +612,25 @@ int HourglassSimulation::Run() {
   return 0;
 }
 
+int HourglassSimulation::OverrideSaveFile( const std::string& save_file) {
+  override_save_file_name_ = save_file;
+  override_save_file_ = true;
+  return 0;
+}
+
 int HourglassSimulation::SaveFigures( const std::string& figure_output_dir = "./") {
   std::stringstream tfile_name;
   std::stringstream name;
 
   tfile_name << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle << "_HourglassSimulation.root"; 
   name       << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle << "_HourglassSimulation.pdf";
-
+  
+  if(override_save_file_) {
+    tfile_name.str("");
+    tfile_name << override_save_file_name_ << ".root";
+    name.str("");
+    name << override_save_file_name_ << ".pdf";
+  }
   std::string out_file_name = name.str() + "[";
   TCanvas* booklet = new TCanvas("booklet","BBC Efficiency Plots");
   TFile* root_out = new TFile(tfile_name.str().c_str(), "RECREATE");

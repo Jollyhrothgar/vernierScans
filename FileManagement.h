@@ -11,6 +11,7 @@ const int NUMBER_OF_RUNS = 7;
 
 
 // Global File Output
+const std::string analysis_root = "/direct/phenix+spin2/beaumim/vernierScans";
 const std::string simulation_config_dir = "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/simulation_config";
 const std::string plots_dir = "/direct/phenix+spin2/beaumim/vernierScans/plots";
 const std::string summary_dir = "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data";
@@ -239,6 +240,26 @@ std::string zdc_bbc_offset_sim_config[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_BBCZDCOffset.txt",
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_BBCZDCOffset.txt",
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_BBCZDCOffset.txt"
+};
+
+std::string zdc_zvtx_histo_name_sim_config[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/359711_ZDCVertexPlots.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/360879_ZDCVertexPlots.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/362492_ZDCVertexPlots.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/364636_ZDCVertexPlots.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/365866_ZDCVertexPlots.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/366605_ZDCVertexPlots.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/summary_data/367138_ZDCVertexPlots.txt"
+};
+
+std::string hourglass_data_file[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/359711_HourglassData.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/360879_HourglassData.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/362492_HourglassData.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/364636_HourglassData.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/365866_HourglassData.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/366605_HourglassData.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/plots/367138_HourglassData.root"
 };
 
 #endif

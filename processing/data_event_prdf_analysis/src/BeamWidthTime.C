@@ -824,8 +824,10 @@ int BeamWidthTime::SaveBeamWidthData(const std::string& out_dir) {
 
   for(auto i = beam_width_data_.begin(); i != beam_width_data_.end(); ++i) {
     out_file << i->GetDataString() << std::endl;
-    out_xoff << "X_OFFSET "  << i->x_planned/1000. << std::endl; 
-    out_yoff << "Y_OFFSET "  << i->y_planned/1000. << std::endl;
+    // desire for units of 'x-offset' to be in centimeters, but the planned
+    // steps file gives us this in micrometers.
+    out_xoff << "X_OFFSET "  << i->x_planned/10000. << std::endl; 
+    out_yoff << "Y_OFFSET "  << i->y_planned/10000. << std::endl;
   }
   return 0;
 }

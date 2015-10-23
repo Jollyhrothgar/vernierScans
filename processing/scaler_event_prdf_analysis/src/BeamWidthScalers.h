@@ -2,7 +2,7 @@
 #define __BEAM_WIDTH_SCALERS_H__
 
 #include "PRDFBBCRate.h"
-#include "/direct/phenix+spin2/beaumim/vernierScans/vernier_analysis/src/BeamPositionSteps.h"
+#include "/home/mjbeaumier/vernierScans/processing/dst_analysis/src/BeamPositionSteps.h"
 
 #include "TCanvas.h"
 #include "TGraph.h"

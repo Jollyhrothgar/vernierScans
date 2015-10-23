@@ -299,10 +299,19 @@ int HourglassData::SaveSimulationConfigData( const std::string& out_dir ) {
   std::ofstream out_bbc_zdc(out_zdc_bbc_offset.str().c_str());
   out_bbc_zdc << "BBC_ZDC_Z_VERTEX_OFFSET " << bbc_zdc_offset_ << std::endl; 
 
+  std::stringstream out_zdc_compare_name;
+  out_zdc_compare_name << out_dir << "/" << run_number_ << "_ZDCVertexPlots.txt";
+  std::ofstream out_zdc_compare(out_zdc_compare_name.str().c_str());
+
   for(auto i = zdc_z_vtx_.begin(); i != zdc_z_vtx_.end(); ++i) {
     TH1F* h = i->second;
     out_zdc << "ZDC_COUNTS " <<  h->GetEntries() << std::endl;
+    out_zdc_compare << "ZDC_VERTEX_DISTRIBUTION_NAME " << h->GetName() << std::endl;
   }
+
+  out_zdc.close();
+  out_bbc_zdc.close();
+  out_zdc.close();
   return 0;
 }
 

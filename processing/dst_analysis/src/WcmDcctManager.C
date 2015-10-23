@@ -687,8 +687,8 @@ int WcmDcctManager::SaveBeamPopulations(const std::string& out_dir) {
   std::stringstream out_file_name;
   out_file_name << out_dir << "/" << run_number_ << "_WCMDCCT_BeamPopulation.txt";
   std::ofstream out_file(out_file_name.str().c_str());
-  out_file << "AVG_NUMBER_IONS_BLUE_BEAM "   << blue_beam_population_ << std::endl;
-  out_file << "AVG_NUMBER_IONS_YELLOW_BEAM " << yellow_beam_population_ << std::endl;
-  out_file << "NUMBER_OF_FILLED_BUNCHES " << filled_bunch_crossings_ << std::endl;
+  out_file << "AVG_NUMBER_IONS_BLUE_BEAM "   << blue_beam_population_   << "e9" << std::endl;
+  out_file << "AVG_NUMBER_IONS_YELLOW_BEAM " << yellow_beam_population_ << "e9" << std::endl;
+  out_file << "FILLED_BUNCHES " << filled_bunch_crossings_ << std::endl;
   return 0;
 }
