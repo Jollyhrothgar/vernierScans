@@ -48,8 +48,8 @@ HourglassSimulation::~HourglassSimulation() {
 
 int HourglassSimulation::InitSpacetime() {
   // Defining spatial corrdinates, to be used in arrays
-  z_low = -300.0;
-  z_high = 300.0;
+  z_low = -300.0; // this must match the data histogram
+  z_high = 300.0; // this must match the data histogram
   z_range = z_high - z_low;
   x_low = -0.3;
   x_high = 0.3;
@@ -159,7 +159,9 @@ int HourglassSimulation::Compare(
         << " for comparison." << std::endl;
     return 1;
   }
-  TH1F* data_hist = (TH1F*) data->Get(zdc_compare_histo_name_.c_str());
+  // I guess precidence of the cast makes this next line work...sorry for the
+  // confusion, future Mike
+  TH1F* data_hist = (TH1F*)data->Get(zdc_compare_histo_name_.c_str())->Clone("zdc_zvertex_data");
   if( !data_hist ) {
     std::cout << "opened " << compare_file_name << " but couldn't find " 
         << zdc_compare_histo_name_ << " to extract." << std::endl;
@@ -282,7 +284,12 @@ int HourglassSimulation::InitDefault() {
 }
 
 int HourglassSimulation::InitPlots() {
-  zdc_zvertex_sim = new TH1F("zdc_zvertex_sim","Z Vertex ZDC Profile Simulation;z vertex;counts",50,z_low,z_high);
+  zdc_zvertex_sim = 
+      new TH1F("zdc_zvertex_sim",
+               "Z Vertex ZDC Profile Simulation;z vertex;counts",
+               100,z_low,z_high);  // this must match the HourglassData zvtx
+                                   // histogram binning and range if we are 
+                                   // to compare.
   zdc_zvertex_sim->SetLineColor(kRed);
   zdc_zvertex_sim->SetLineWidth(2);
   zdc_zvertex_sim->Sumw2();
@@ -439,7 +446,7 @@ int HourglassSimulation::Run() {
         for(int cy=0; cy<N_bin_y; cy++) {    
           /* ALL COMPUTATION TIME SPENT HERE */
           // What have I checked to speed up?
-          // 1. I replaced the computation with a root TF1 object. This actuall slowed it down.
+          // 1. I replaced the computation with a root TF1 object. This actually slowed it down.
           // 2. Are any expressions in here getting evaluated more often than they need to?
           //   cos_half_angle is known before this loop, so we can evaluate it outside.
           //   We have split the ex_1l equations up to get evaluated separately only when needed.
@@ -473,7 +480,7 @@ int HourglassSimulation::Run() {
               *ex_term2_common
               *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zr+vel*input_time[ct])/sc_sigma_zr,2)))
               *(1.0/sc_sigma_zr);                       
-          g = (spacetime_norm*(ex_1l+ex_1c+ex_1r)*(ex_2l+ex_2c+ex_2r));
+          g = (spacetime_norm*(ex_1l+ex_1c+ex_1r)*(ex_2l+ex_2c+ex_2r)); // this is the integral value
           /* END EXPENSIVE PART */
 
           if(g >= 0.0) {
