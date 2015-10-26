@@ -10,6 +10,6 @@ int Run_PRDFBBCRate(
     scaler_ppg_file[run_index]
     );
   prdf_rate.Run();
-  prdf_rate.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/prdf_tools/processing/scaler_event_processing/plots");
+  prdf_rate.SaveFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
   return 0;
 }
