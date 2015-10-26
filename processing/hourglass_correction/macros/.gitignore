@@ -1,3 +1,5 @@
 # Ignore these types of files in this directory
 *.root
 *.pdf
+*.txt
+*.conf

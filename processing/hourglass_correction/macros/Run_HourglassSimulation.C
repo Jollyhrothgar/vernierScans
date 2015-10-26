@@ -7,10 +7,11 @@ int Run_HourglassSimulation(
   gSystem->Load(lib.c_str());
   HourglassSimulation sim;
   //sim.InitDefault();
-  sim.InitFromConfig("/direct/phenix+spin2/beaumim/vernierScans/processing/hourglass_correction/macros/test_config.conf");
-  sim.OverrideSaveFile("./test_simulation");
+
+  sim.InitFromConfig(simulation_config_dir+"/359711_step_00.conf");
+  sim.OverrideSaveFile("./359711_step_00_vertex");
   sim.Run();
   sim.SaveFigures(plots_dir);
-  sim.Compare(hourglass_data_file[run_index],"./test_compare.root");
+  sim.Compare(hourglass_data_file[run_index],"./359711_step_00.root");
   return 0;
 }

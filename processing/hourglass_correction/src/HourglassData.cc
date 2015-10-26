@@ -236,7 +236,7 @@ int HourglassData::Run() {
   float n_bbc_zdc_offset = 0.;
   for(unsigned int i = 0; i < step_boundaries_.size(); i++) {
     if(fabs(planned_steps_[i]) < 0.001) {
-      float offset = bbc_z_vtx_[i]->GetMean() - zdc_z_vtx_[i]->GetMean(); 
+      float offset = zdc_z_vtx_[i]->GetMean() - bbc_z_vtx_[i]->GetMean();
       bbc_zdc_offset += offset;
       n_bbc_zdc_offset += 1.0;
       std::cout << "new bbc-zdc offset: " << offset << std::endl;

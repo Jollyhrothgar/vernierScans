@@ -17,7 +17,7 @@ class HourglassConfiguration{
   int LoadConfigFile(const std::string& in_file_name); 
   
   int ModifyConfigParameter(const std::string& param, const std::string& val);
-  int SaveConfigFile(const std::string& out_dir);
+  int SaveConfigFile(const std::string& out_file);
   int ShowConfigFile();
   int SetDefaultValues();
 
@@ -44,6 +44,12 @@ class HourglassConfiguration{
   // WcmDcctManager : creates beam_population_file
   // HourglassData  : creates zdc_counts_per_step_file 
   // BeamWidthTime  : creates [xy]_offsets_file, [hv]_width_file
+  //
+  // In batch mode, we keep the name for the scan step more simple. Simply
+  // [RunNumber]_step[StepNumber].conf is sufficient, since it is too cumbersome
+  // to include significan configuration information in the file-name itself,
+  // and these config files will be starting points for simulation, rather than
+  // the final best configuration.
   int BatchCreateConfigFiles(
     const std::string& run_number_,
     const std::string& bbc_zdc_offset_file,

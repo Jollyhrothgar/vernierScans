@@ -6,6 +6,7 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include <iomanip>
 
 HourglassConfiguration::HourglassConfiguration() {
   std::stringstream ss;
@@ -62,7 +63,7 @@ int HourglassConfiguration::SetDefaultValues() {
   ModifyConfigParameter("BBC_ZDC_Z_VERTEX_OFFSET"       , "9.38");
   ModifyConfigParameter("ZDC_VERTEX_DISTRIBUTION_NAME"  , "zdc_zvtx_step_0");
   ModifyConfigParameter("BETA_STAR"                     , "85.");
-  ModifyConfigParameter("CROSSING_ANGLE_XZ"             , "0.08e-3");
+  ModifyConfigParameter("CROSSING_ANGLE_XZ"             , "-0.08e-3");
   ModifyConfigParameter("FILLED_BUNCHES"                , "107");
   ModifyConfigParameter("BUNCH_CROSSING_FREQUENCY"      , "78213.");
   ModifyConfigParameter("Z_PROFILE_SCALE_VALUE"         , "1.5");
@@ -98,10 +99,8 @@ bool HourglassConfiguration::ParameterExists(const std::string& par) {
   return false;
 }
 
-int HourglassConfiguration::SaveConfigFile(const std::string& out_dir ) {
-  std::stringstream out_file_name;
-  out_file_name << out_dir << "/" << GetConfigName();
-  std::ofstream out_file(out_file_name.str().c_str());
+int HourglassConfiguration::SaveConfigFile(const std::string& file_name ) {
+  std::ofstream out_file(file_name.c_str());
   for(auto i = par_.begin(); i != par_.end(); ++i){
     out_file << i->first << " " << i->second << std::endl;
   }
@@ -133,21 +132,20 @@ int HourglassConfiguration::LoadConfigFile(const std::string& in_file_name) {
 }
 
 int HourglassConfiguration::ShowConfigFile() {
-  std::cout << "CONFIGURATION FILE: " << GetConfigName() << std::endl;
+  std::cout << "CONFIGURATION FILE: " << std::endl;
   for(auto i = par_.begin(); i != par_.end(); ++i) {
     std::cout << i->first << " = " << i->second << std::endl;
   }
   return 0;
 }
 
+// Default name for interactively generated config files.
 std::string HourglassConfiguration::GetConfigName() {
   std::stringstream name;
   name              << par_["RUN_NUMBER"]     << "_" 
       << "hoff"     << par_["X_OFFSET"]       << "_"
       << "voff"     << par_["Y_OFFSET"]       << "_"
-      << "betastar" << par_["BETA_STAR"]      << "_"
-      << "crossing" << par_["CROSSING_ANGLE_XZ"] << "_" 
-      << "hourglass_sim.conf";
+      << "sim.conf";
   return name.str();
 }
 
@@ -289,8 +287,10 @@ int HourglassConfiguration::BatchCreateConfigFiles(
     ModifyConfigParameter(yoff_step.begin()->first , yoff_step.begin()->second);
     ModifyConfigParameter(zdc_step .begin()->first , zdc_step .begin()->second );
     ModifyConfigParameter(zdc_hist .begin()->first , zdc_hist .begin()->second );
-    auto config_name = GetConfigName();
-    SaveConfigFile(sim_config_out_dir);
+
+    std::stringstream file_name;
+    file_name << sim_config_out_dir << "/" << run_number_ << "_step_" << std::setw(2) << std::setfill('0') << i << ".conf";
+    SaveConfigFile(file_name.str());
   }
   return 0;
 }
