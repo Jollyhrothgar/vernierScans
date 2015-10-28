@@ -1,5 +1,8 @@
-# Ignore these types of files in this directory
+# Ignore these types of files in this directory These are all generated from
+# running simulations interactively, and will be present during active
+# development.
 *.root
 *.pdf
 *.txt
 *.conf
+*.sh

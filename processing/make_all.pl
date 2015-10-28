@@ -21,15 +21,21 @@ my @build_dir = (
  "$base_dir/data_event_prdf_analysis/build",
  );
 
-# CLEAN EVERYTHING
 foreach my $dir (@build_dir) {
+# CLEAN 
   print "CLEANING: ",$dir, "\n";
   chdir("$dir/..") or die "cannot change: $!\n";
   system("./fullClean.csh");
+# BUILD
   print "BUILDING: ",$dir,"\n";
   chdir("$dir") or die "cannot change: $!\n";
   system("../src/autogen.sh --prefix=\$MYINSTALL");
-  system("make -j8 install");
+  system("make -j4 install"); # hopefully your machine has at least four logical cores!
 }
 
-print "Everything is fresh and new!\n"
+print "Everything is fresh and new!\n";
+print "Confirm libraries are at their newest state:\n";
+print "System time: ";
+system("date");
+print "\n";
+system ("ls -ltrh \$MYINSTALL/lib | grep -i Vernier");

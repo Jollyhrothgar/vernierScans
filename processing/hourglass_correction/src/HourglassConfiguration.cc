@@ -60,7 +60,7 @@ int HourglassConfiguration::SetDefaultValues() {
   ModifyConfigParameter("VERTICAL_BEAM_WIDTH"           , "0.0238342");
   ModifyConfigParameter("AVG_NUMBER_IONS_BLUE_BEAM"     , "120.029e9");
   ModifyConfigParameter("AVG_NUMBER_IONS_YELLOW_BEAM"   , "88.167e9");
-  ModifyConfigParameter("BBC_ZDC_Z_VERTEX_OFFSET"       , "9.38");
+  ModifyConfigParameter("BBC_ZDC_Z_VERTEX_OFFSET"       , "-9.38");
   ModifyConfigParameter("ZDC_VERTEX_DISTRIBUTION_NAME"  , "zdc_zvtx_step_0");
   ModifyConfigParameter("BETA_STAR"                     , "85.");
   ModifyConfigParameter("CROSSING_ANGLE_XZ"             , "-0.08e-3");

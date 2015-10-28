@@ -159,8 +159,6 @@ int HourglassSimulation::Compare(
         << " for comparison." << std::endl;
     return 1;
   }
-  // I guess precidence of the cast makes this next line work...sorry for the
-  // confusion, future Mike
   TH1F* data_hist = (TH1F*)data->Get(zdc_compare_histo_name_.c_str())->Clone("zdc_zvertex_data");
   if( !data_hist ) {
     std::cout << "opened " << compare_file_name << " but couldn't find " 
@@ -180,9 +178,7 @@ int HourglassSimulation::Compare(
 
   std::cout << "Normalization of data: " << data_scale << ", and sim: " 
       << sim_scale << std::endl;
-  std::cout << "If normalization is different between distributions, "
-      << "there may be a problem with the simulation." << std::endl;
-  std::cout << "Norm Difference: " << data_scale - sim_scale << std::endl;
+  std::cout << "Norm Difference (should be small or zero): " << data_scale - sim_scale << std::endl;
 
   TFile* compare_file = new TFile(out_file.c_str(),"RECREATE");
   TCanvas* zvertex_comparison_canvas = 
@@ -255,16 +251,12 @@ int HourglassSimulation::Compare(
 // Hardcode Configuration here, used for last-resort debugging
 int HourglassSimulation::InitDefault() {
 // DEFAULT Configuration - max x offset for 359711
-
-  /** scan configuration */
   run_number_ = "359711";
   xoff = -0.1; 
   yoff = 0.0;  
-  count_norm = 891;
+  count_norm = 592;
   rate = 0.001; 
   MAX_COLL = 5 + 1;
-
-  /** variables for z-t ~Gaussian distribution of intial beam profile */
   n_bunch = 107;
   freq = 78213.0;
   scale = 1.5; // What is this for..? wp
@@ -404,19 +396,18 @@ int HourglassSimulation::Run() {
 
   time_tracker["phase_1"] = GetTime().count();
   std::cout << "phase_1" << std::endl;
-  //====================== creating an array with Gaussian Distribution in 'z' and 't' ===================================
-  for(int t_ct = 0; t_ct < N_bin_t; t_ct++) {
+
+  // CREATING DISCREET SPACIAL ARRAYS REPRESENTING SPACETIME CORRDINATES
+  for(int t_ct = 0; t_ct < N_bin_t; t_ct++) { // dimension: time
     input_time[t_ct] = (t_low + static_cast<double>(t_ct)*binsizeT + binsizeT/2.0);
   }
-  for(int z_ct = 0; z_ct < N_bin_z; z_ct++) {
+  for(int z_ct = 0; z_ct < N_bin_z; z_ct++) { // dimension: z
     position[z_ct] = (z_low + static_cast<double>(z_ct)*binsizeZ + binsizeZ/2.0); 
-    // check if I understand binning
-    // std::cout << z_ct << ": " << z_low << " + " << z_ct << " * " << binsizeZ << " + " << binsizeZ/2.0 << " = " << position[z_ct] << std::endl;
   }
-  for(int x_ct = 0; x_ct < N_bin_x; x_ct++) {
+  for(int x_ct = 0; x_ct < N_bin_x; x_ct++) { // dimension: x
     xposition[x_ct] = (x_low + static_cast<double>(x_ct)*binsizeX + binsizeX/2.0); 
   }
-  for(int y_ct = 0; y_ct < N_bin_y; y_ct++) {
+  for(int y_ct = 0; y_ct < N_bin_y; y_ct++) { // dimension: y
     yposition[y_ct] = (y_low + static_cast<double>(y_ct)*binsizeY + binsizeY/2.0); 
   }
 
@@ -444,17 +435,23 @@ int HourglassSimulation::Run() {
         double ex_1l_term1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-xoff+half_angle*position[cz])/sigma_xz, 2.0));
         double ex_2l_term1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-half_angle*position[cz])/sigma_xz, 2.0));
         for(int cy=0; cy<N_bin_y; cy++) {    
-          /* ALL COMPUTATION TIME SPENT HERE */
+          // ALL COMPUTATION TIME SPENT HERE 
+          // 
           // What have I checked to speed up?
-          // 1. I replaced the computation with a root TF1 object. This actually slowed it down.
-          // 2. Are any expressions in here getting evaluated more often than they need to?
-          //   cos_half_angle is known before this loop, so we can evaluate it outside.
-          //   We have split the ex_1l equations up to get evaluated separately only when needed.
-          //   THis will be a good test to see if the compiler was optimizating this part anyway.
+          // 1. I replaced the computation with a root TF1 object. This actually
+          //    slowed it down. Maybe worthwhile to bring this back if we are to
+          //    implement gradient-descent regression?
+          // 2. Are any expressions in here getting evaluated more often than
+          //    they need to?  cos_half_angle is known before this loop, so we can
+          //    evaluate it outside.  We have split the ex_1l equations up to get
+          //    evaluated separately only when needed.  This will be a good test to
+          //    see if the compiler was optimizating this part anyway.
           //
           //   This halfed the execution time.
 
           double ex_term2_common = exp(-0.5*pow(yposition[cy]/sigma_yz,2.0));
+          
+          // Density Function for First Bunch
           ex_1l = ex_1l_term1
               *ex_term2_common
               *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zl-vel*input_time[ct])/sc_sigma_zl,2)))
@@ -467,7 +464,8 @@ int HourglassSimulation::Run() {
               *ex_term2_common
               *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zr-vel*input_time[ct])/sc_sigma_zr,2)))
               *(1.0/sc_sigma_zr);
-          // Integrand second bunch
+          
+          // Density Function for Second Bunch
           ex_2l = ex_2l_term1
               *ex_term2_common
               *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zl+vel*input_time[ct])/sc_sigma_zl,2)))
@@ -484,8 +482,8 @@ int HourglassSimulation::Run() {
           /* END EXPENSIVE PART */
 
           if(g >= 0.0) {
-            sum_prob += g;
-            add_T += g;
+            sum_prob += g; // this is literally just the value of the integral
+            add_T += g; // this is the same thing as sum_prob?
           } else {
             std::cout << "Gaussian prob. negative. Check code." <<  std::endl;
             return 0;
@@ -493,15 +491,19 @@ int HourglassSimulation::Run() {
           how_many_things++;
         }//end loop on y
       }//end loop on x
-      gaussian_dist[ct][cz] = sum_prob;//storing prob for 2-D z-t grid summed over x,y
+      gaussian_dist[ct][cz] = sum_prob; // storing prob for 2-D z-t grid summed over x,y
     }//end loop on z  
     z_norm[ct] = add_T;
     sum_T += add_T;
     t_dist[ct] = sum_T;//storing prob in t with z-prob summed over
   }//end loop on t
+
   time_tracker["phase_3"] = GetTime().count();
   std::cout << "phase_3" << std::endl;
-  std::cout << "Luminosity = " << sum_prob << std::endl;//debug
+
+  // should match our actual luminosity when parameters are configured
+  // correctly.
+  std::cout << "Luminosity = " << sum_prob << std::endl;
   std::cout << "done accumulating Gaussian distbns." << std::endl;
 
   //====================running over a no. of bunch crossings==================================
