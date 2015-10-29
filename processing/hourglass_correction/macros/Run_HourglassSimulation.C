@@ -15,7 +15,7 @@ int Run_HourglassSimulation(
   sim.InitFromConfig(config_file);
   sim.OverrideSaveFile(save_file_stub); // Use for batch jobs where complex file name would be confusing.
   sim.Run();
+  sim.Compare(hourglass_data_file[run_index]);
   sim.SaveFigures(plots_dir);
-  sim.Compare(hourglass_data_file[run_index],compare_file);
   return 0;
 }

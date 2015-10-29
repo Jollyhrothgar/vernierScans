@@ -21,6 +21,7 @@
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TPaveText.h"
+#include "TError.h"
 
 #define PI 3.14159265
 
@@ -150,8 +151,7 @@ int HourglassSimulation::InitDefaultConfig() {
 }
 
 int HourglassSimulation::Compare(
-    const std::string& compare_file_name, 
-    const std::string& out_file 
+    const std::string& compare_file_name
 ) {
   TFile* data = new TFile(compare_file_name.c_str(), "READ");
   if(!data) {
@@ -159,42 +159,42 @@ int HourglassSimulation::Compare(
         << " for comparison." << std::endl;
     return 1;
   }
-  TH1F* data_hist = (TH1F*)data->Get(zdc_compare_histo_name_.c_str())->Clone("zdc_zvertex_data");
-  if( !data_hist ) {
+  zdc_zvertex_dat = (TH1F*)data->Get(zdc_compare_histo_name_.c_str())->Clone("zdc_zvertex_data");
+  if( !zdc_zvertex_dat ) {
     std::cout << "opened " << compare_file_name << " but couldn't find " 
         << zdc_compare_histo_name_ << " to extract." << std::endl;
     return 1;
   }
-  data_hist->SetLineColor(kBlue);
-  TH1F* data_norm = (TH1F*)data_hist->Clone("zdc_zvertex_data_norm");
-  data_norm->SetDirectory(0);
-  double data_scale = 1.0/data_norm->Integral();
-  data_norm->Scale(data_scale);
+  zdc_zvertex_dat->SetLineColor(kBlue);
+  zdc_zvertex_dat->SetDirectory(0);
+  zdc_zvertex_dat_norm = (TH1F*)zdc_zvertex_dat->Clone("zdc_zvertex_data_norm");
+  zdc_zvertex_dat_norm->SetDirectory(0);
+  double data_scale = 1.0/zdc_zvertex_dat_norm->Integral();
+  zdc_zvertex_dat_norm->Scale(data_scale);
 
-  TH1F* sim_norm = (TH1F*)zdc_zvertex_sim->Clone("zdc_zvertex_sim_norm");
-  sim_norm->SetDirectory(0);
-  double sim_scale = 1.0/sim_norm->Integral();
-  sim_norm->Scale(sim_scale);
+  zdc_zvertex_sim_norm = (TH1F*)zdc_zvertex_sim->Clone("zdc_zvertex_sim_norm");
+  zdc_zvertex_sim_norm->SetDirectory(0);
+  double sim_scale = 1.0/zdc_zvertex_sim_norm->Integral();
+  zdc_zvertex_sim_norm->Scale(sim_scale);
 
   std::cout << "Normalization of data: " << data_scale << ", and sim: " 
       << sim_scale << std::endl;
   std::cout << "Norm Difference (should be small or zero): " << data_scale - sim_scale << std::endl;
 
-  TFile* compare_file = new TFile(out_file.c_str(),"RECREATE");
-  TCanvas* zvertex_comparison_canvas = 
+  zvertex_comparison_canvas = 
       new TCanvas("zvertex_comparison_canvas",
                   "Data/Simulation Comparison",
                   800,600);
-  TCanvas* simulation_config_canvas = 
+  simulation_config_canvas = 
       new TCanvas("simulation_config_canvas",
                   "Configuration For Simulation",
                   800,600);
-  TCanvas* config_and_vertex_compare = 
+  config_and_vertex_compare = 
       new TCanvas("config_and_vertex_compare",
                   "Configuration Parameters + ZVertex",
                   1600,800);
   config_and_vertex_compare->Divide(2,1);
-  TCanvas* norm_config_and_vertex_compare = 
+  norm_config_and_vertex_compare = 
       new TCanvas("norm_config_and_vertex_compare",
                   "Normalized Vertex Distribution for Simulation and Data",
                   1600,800);
@@ -211,41 +211,43 @@ int HourglassSimulation::Compare(
   config_and_vertex_compare->cd(1);
   config_text->Draw();
   config_and_vertex_compare->cd(2);
-  data_hist->Draw();
+  zdc_zvertex_dat->Draw();
   zdc_zvertex_sim->Draw("same");
 
   norm_config_and_vertex_compare->cd(1);
   config_text->Draw();
   norm_config_and_vertex_compare->cd(2);
-  data_norm->Draw();
-  sim_norm->Draw("same");
+  zdc_zvertex_dat_norm->Draw();
+  zdc_zvertex_sim_norm->Draw("same");
 
   simulation_config_canvas->cd();
   config_text->Draw();
-  config_text->Write();
 
   zvertex_comparison_canvas->cd();
-  data_hist->Draw();
+  zdc_zvertex_dat->Draw();
   zdc_zvertex_sim->Draw("same");
 
-  compare_file->cd();
-  simulation_config_canvas->Write();
-  compare_file->cd();
-  zdc_zvertex_sim->Write();
-  data_hist->Write();
-  zvertex_comparison_canvas->Write();
-  config_and_vertex_compare->Write();
-  data_norm->Write();
-  sim_norm->Write();
-  norm_config_and_vertex_compare->Write();
-  compare_file->Write();
+  // Compare distributions
 
-  delete zvertex_comparison_canvas;
-  delete config_text;
-  delete simulation_config_canvas;
-  delete config_and_vertex_compare;
-  delete norm_config_and_vertex_compare;
-  delete compare_file;
+  // Get Chi2Test
+  chi2_test = zdc_zvertex_dat->Chi2Test(zdc_zvertex_sim,"UW P");
+  
+  // Generate average residual
+  double average_res = 0;
+  for(int i = 0; i < zdc_zvertex_dat->GetNbinsX(); i++) {
+    average_res +=  pow(zdc_zvertex_dat->GetBinContent(i) - zdc_zvertex_sim->GetBinContent(i),2.0);
+  }
+  squares_residual =  average_res/(zdc_zvertex_dat->GetNbinsX());
+
+  // save canvases and plots
+  save_registry_.push_back(zdc_zvertex_dat);
+  save_registry_.push_back(zdc_zvertex_sim_norm);
+  save_registry_.push_back(zdc_zvertex_dat_norm);
+  save_registry_.push_back(zvertex_comparison_canvas);
+  save_registry_.push_back(simulation_config_canvas);
+  save_registry_.push_back(config_and_vertex_compare);
+  save_registry_.push_back(norm_config_and_vertex_compare);
+  delete data;
   return 0;
 }
 // Hardcode Configuration here, used for last-resort debugging
@@ -628,6 +630,7 @@ int HourglassSimulation::OverrideSaveFile( const std::string& save_file) {
 }
 
 int HourglassSimulation::SaveFigures( const std::string& figure_output_dir = "./") {
+  gErrorIgnoreLevel = kWarning;
   std::stringstream tfile_name;
   std::stringstream name;
 
@@ -663,5 +666,6 @@ int HourglassSimulation::SaveFigures( const std::string& figure_output_dir = "./
   root_out->Close();
   if(root_out) delete root_out;
   delete booklet;
+  gErrorIgnoreLevel = kInfo;
   return 0;
 }

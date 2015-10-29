@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "TH1F.h"
+#include "TCanvas.h"
 #include "TObject.h"
 
 
@@ -41,12 +42,12 @@ class HourglassSimulation {
   // operations applied to them immediately before use.
   int ShowConfig();
 
-  // Compare to a data distribution, save to a root file
+  // Compare to a data distribution
   // The proper zdc distribution is extracted from the config file, the root
   // file which contains this distribution is passed as compare_file_name. The
   // simulated z-vertex is plotted on top of the real z-vertex distribution, and
-  // the canvas is saved to out_file.
-  int Compare(const std::string& compare_file_name, const std::string& out_file);
+  // the canvas is saved to the registry.
+  int Compare(const std::string& compare_file_name);
   std::string zdc_compare_histo_name_;
   
   // saves any figures loaded into save_restitry_ to a root file and pdf. Used
@@ -79,7 +80,20 @@ class HourglassSimulation {
   
   // Simulated z-vertex distribution
   TH1F* zdc_zvertex_sim;
+  TH1F* zdc_zvertex_dat;
+  TH1F* zdc_zvertex_sim_norm;
+  TH1F* zdc_zvertex_dat_norm;
+  TCanvas* zvertex_comparison_canvas;
+  TCanvas* simulation_config_canvas;
+  TCanvas* config_and_vertex_compare;
+  TCanvas* norm_config_and_vertex_compare;
   std::vector<TObject*> save_registry_;
+
+  // goodness of fits
+ public:
+  double chi2_test;
+  double squares_residual;
+ private:
 
   // CONFIGURATION (These variables should not change after initialization...) )
   std::string run_number_;
