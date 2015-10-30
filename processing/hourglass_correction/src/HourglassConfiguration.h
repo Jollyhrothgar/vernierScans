@@ -63,16 +63,49 @@ class HourglassConfiguration{
     const std::string& sim_config_out_dir
   );
 
+  // Used for generating config files to farm out simulations to cluster - start
+  // with a good config file, then set the tolerance range for range of
+  // parameters. This function can be modified to determine which parameters are
+  // varied, but currently, it makes sense to vary beta-star, multiple
+  // collisions, crossing angle and z-scale. But maybe not even multiple
+  // collisions.
+  //
+  // base_config is the base config file which will be modified. 
+  //
+  // out_directory is where we will deposit the config files
+  //
+  // stub is the base name for the config file
+  //
+  // pct_range gives the percentage of the range to vary a parameter's value.
+  // For example, if you give it 0.5, then the parameters will be varied from
+  // par-0.5*par to par+0.5*par.
+  //
+  // steps will tell how many steps to split up the range into. The minimum is
+  // three, such that you get one file for the low range, one file for the
+  // middle of the range, and one file for the top of the range. 
+  //
+  // Files will be generated and named based on stub. Appended to the stub will
+  // be an integer, representing the order the config files were generated. This
+  // is simply to provide a unique name to the file. For example, say you have
+  // three parameters which are varied 3 times each, then you will have 3 choose
+  // 3 parameters, i.e. 9 files. Then the files will be called:
+  // out_directory/run_number_stub_n.conf where n varies from 0 to 8.
+  int GenerateConfigFileRange(
+      const std::string& base_config, 
+      const std::string& out_directory, 
+      const std::string& stub, 
+      double pct_range, 
+      double steps
+   );
+
   // Generate a unique config file name from identifying information
   std::string GetConfigName();
 
   // returns true if par is found to be a parameter in config_. Designed usage
   // is for checking input when loading partial parameter lists from files.
   bool ParameterExists(const std::string& par);
-
  private:
-  // par_: maps config parameter to config value. Conversion handled with
-  // stringstreams.
+  // string representation of hourglass simulation parameters
   std::map<std::string,std::string> par_;
 };
 

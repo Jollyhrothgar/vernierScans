@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <iomanip>
+#include <string>
 
 HourglassConfiguration::HourglassConfiguration() {
   std::stringstream ss;
@@ -45,7 +46,6 @@ int HourglassConfiguration::GenerateEmptyConfigFile() {
   par_["Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"]  = ""; // wp SetDefaultValues
   par_["Z_BUNCH_WIDTH_LEFT_OFFSET"]      = ""; // wp SetDefaultValues
   par_["Z_BUNCH_WIDTH_RIGHT_OFFSET"]     = ""; // wp SetDefaultValues
-  // *these terms change based on the beam displaement
   return 0;
 }
 
@@ -120,7 +120,7 @@ int HourglassConfiguration::LoadConfigFile(const std::string& in_file_name) {
       while(getline(iss,token,' ')) { tokens.push_back(token); }
       if(tokens.size() != 2 ) {
         std::cout << "FILE " << in_file_name << " IS NOT FULLY INITIALIZED. CANNOT USE FOR SIMULATIONS!" << std::endl;
-	return 1;
+  return 1;
       } else {
         ModifyConfigParameter(tokens[0],tokens[1]);
       }
@@ -147,6 +147,51 @@ std::string HourglassConfiguration::GetConfigName() {
       << "voff"     << par_["Y_OFFSET"]       << "_"
       << "sim.conf";
   return name.str();
+}
+
+int HourglassConfiguration::GenerateConfigFileRange(
+  const std::string& base_config, 
+  const std::string& out_directory, 
+  const std::string& stub, 
+  double pct_range, 
+  double steps
+){
+  LoadConfigFile(base_config);
+  double beta_star  = std::stod(par_["BETA_STAR"]);
+  double xing_angle = std::stod(par_["CROSSING_ANGLE_XZ"]);
+  double z_scale    = std::stod(par_["Z_PROFILE_SCALE_VALUE"]);
+
+  double beta_star_min  = beta_star - beta_star*pct_range;
+  double beta_star_max  = beta_star + beta_star*pct_range;
+  double xing_angle_min = xing_angle - xing_angle*pct_range;
+  double xing_angle_max = xing_angle + xing_angle*pct_range;
+  double z_scale_min    = z_scale - z_scale*pct_range;
+  double z_scale_max    = z_scale + z_scale*pct_range;
+
+  double beta_star_step  = (beta_star_max - beta_star_min)/steps;
+  double xing_angle_step = (xing_angle_max - xing_angle_min)/steps;
+  double z_scale_step    = (z_scale_max - z_scale_min)/steps;
+
+  std::vector<double> v_beta;
+  std::vector<double> v_xing;
+  std::vector<double> v_scale;
+
+  for(beta_star = beta_star_min; beta_star <= beta_star_max; beta_star+=beta_star_step) {
+    v_beta.push_back(beta_star);
+    std::cout << v_beta.back() << ", ";
+  }
+  std::cout << std::endl;
+  for(xing_angle = xing_angle_min; xing_angle <= xing_angle_max; xing_angle+=xing_angle_step) {
+    v_xing.push_back(xing_angle);
+    std::cout << v_xing.back() << ", ";
+  }
+  std::cout << std::endl;
+  for(z_scale = z_scale_min; z_scale <= z_scale_max; z_scale += z_scale_step) {
+    v_scale.push_back(z_scale);
+    std::cout << v_scale.back() << ", ";
+  }
+  std::cout << std::endl;
+  return 0;
 }
 
 int HourglassConfiguration::BatchCreateConfigFiles(

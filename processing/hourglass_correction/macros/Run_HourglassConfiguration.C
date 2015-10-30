@@ -7,6 +7,7 @@ int Run_HourglassConfiguration(
 
   int run_index = 0;
   // Create All Config Files
+
   config.BatchCreateConfigFiles(
     run_number[run_index],
     zdc_bbc_offset_sim_config[run_index],
@@ -19,6 +20,8 @@ int Run_HourglassConfiguration(
     zdc_zvtx_histo_name_sim_config[run_index],
     simulation_config_dir
     );
+
+  // wp need to test range based config generation
   // Shows the last internal configuration of HourglassConfiguration
   config.ShowConfigFile();
 
