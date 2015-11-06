@@ -18,6 +18,7 @@
 
 #include "TF1.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TPaveText.h"
@@ -58,7 +59,7 @@ int HourglassSimulation::InitSpacetime() {
   y_low = -0.3;
   y_high = 0.3;
   y_range = y_high - y_low;
-  t_low =  -10.0e-8;
+  t_low =  -10.0e-8; // 200 nanoseconds
   t_high = 10.0e-8;
   t_range = t_high - t_low;
   vel = 3.0e10; 
@@ -108,7 +109,7 @@ int HourglassSimulation::InitConfig() {
   sigma_x     = std::stod(config_.GetPar("HORIZONTAL_BEAM_WIDTH"));
   sigma_y     = std::stod(config_.GetPar("VERTICAL_BEAM_WIDTH")  );
   sigma_xstar = sigma_x/pow(2,0.5); // applying constants in lumi calculation
-  sigma_ystar = sigma_x/pow(2,0.5); // applying constants in lumi calculation
+  sigma_ystar = sigma_y/pow(2,0.5); // applying constants in lumi calculation
   N_blue      = std::stod(config_.GetPar("AVG_NUMBER_IONS_BLUE_BEAM"));
   N_yell      = std::stod(config_.GetPar("AVG_NUMBER_IONS_YELLOW_BEAM"));
   z_vtx_off   = std::stod(config_.GetPar("BBC_ZDC_Z_VERTEX_OFFSET"));
@@ -284,6 +285,13 @@ int HourglassSimulation::InitPlots() {
                100,z_low,z_high);  // this must match the HourglassData zvtx
                                    // histogram binning and range if we are 
                                    // to compare.
+  zvtx_pdf = 
+      new TH2F("zvtx_pdf",
+               "Gaussian PDF Distribution;z vertex;counts;time;counts",
+               100,z_low,z_high,
+               100,t_low,t_high);
+
+  save_registry_.push_back(zvtx_pdf);
   zdc_zvertex_sim->SetLineColor(kRed);
   zdc_zvertex_sim->SetLineWidth(2);
   zdc_zvertex_sim->Sumw2();
@@ -347,7 +355,6 @@ int HourglassSimulation::Run() {
   double poisson_dist[MAX_COLL];
   double g;
   double norm;
-  double ex_1l, ex_1c, ex_1r, ex_2l, ex_2c, ex_2r; // dividing luminosity integral into separable gaussian pieces
   double sigma_xz, sigma_yz;
   double sum_prob;
   double sum_T;
@@ -434,54 +441,42 @@ int HourglassSimulation::Run() {
       norm = ((n_bunch*freq*N_blue*N_yell)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
       double spacetime_norm = norm*binsizeX*binsizeY*binsizeZ*vel*binsizeT;
       for(int cx=0; cx<N_bin_x; cx++) {
-        double ex_1l_term1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-xoff+half_angle*position[cz])/sigma_xz, 2.0));
-        double ex_2l_term1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-half_angle*position[cz])/sigma_xz, 2.0));
+        double density_x1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-xoff+half_angle*position[cz])/sigma_xz, 2.0)); // only one bunch is offset
+        double density_x2 = exp(-0.5*pow((xposition[cx]*cos_half_angle     -half_angle*position[cz])/sigma_xz, 2.0));
         for(int cy=0; cy<N_bin_y; cy++) {    
-          // ALL COMPUTATION TIME SPENT HERE 
-          // 
-          // What have I checked to speed up?
-          // 1. I replaced the computation with a root TF1 object. This actually
-          //    slowed it down. Maybe worthwhile to bring this back if we are to
-          //    implement gradient-descent regression?
-          // 2. Are any expressions in here getting evaluated more often than
-          //    they need to?  cos_half_angle is known before this loop, so we can
-          //    evaluate it outside.  We have split the ex_1l equations up to get
-          //    evaluated separately only when needed.  This will be a good test to
-          //    see if the compiler was optimizating this part anyway.
-          //
-          //   This halfed the execution time.
+          // BEGIN COMPUTATIONALLY EXPENSIVE PORTION
+	  double density_y1 = exp(-0.5*pow((yposition[cy]-yoff)/sigma_yz,2.0));
+          double density_y2 = exp(-0.5*pow((yposition[cy]     )/sigma_yz,2.0));
 
-          double ex_term2_common = exp(-0.5*pow(yposition[cy]/sigma_yz,2.0));
-          
-          // Density Function for First Bunch
-          ex_1l = ex_1l_term1
-              *ex_term2_common
-              *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zl-vel*input_time[ct])/sc_sigma_zl,2)))
+          // Z-profile density for first bunch
+          double density_z1l =   
+              1.522*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zl-vel*input_time[ct])/sc_sigma_zl,2)))
               *(1.0/sc_sigma_zl);//corrected for rotaion in x-z plane, 2015
-          ex_1c = ex_1l_term1
-              *ex_term2_common
-              *2.157*exp(-0.5*(pow((position[cz]*cos_half_angle-vel*input_time[ct])/sc_sigma_zc,2)))
+          double density_z1c = 
+              2.157*exp(-0.5*(pow((position[cz]*cos_half_angle-vel*input_time[ct])/sc_sigma_zc,2)))
               *(1.0/sc_sigma_zc);//corrected for rotaion in x-z plane, 2015
-          ex_1r = ex_1l_term1
-              *ex_term2_common
-              *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zr-vel*input_time[ct])/sc_sigma_zr,2)))
+          double density_z1r =
+              1.999*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zr-vel*input_time[ct])/sc_sigma_zr,2)))
               *(1.0/sc_sigma_zr);
           
-          // Density Function for Second Bunch
-          ex_2l = ex_2l_term1
-              *ex_term2_common
-              *1.522*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zl+vel*input_time[ct])/sc_sigma_zl,2)))
+          // Z-profile density for second bunch
+          double density_z2l =
+              1.522*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zl+vel*input_time[ct])/sc_sigma_zl,2)))
               *(1.0/sc_sigma_zl);
-          ex_2c = ex_2l_term1
-              *ex_term2_common
-              *2.157*exp(-0.5*(pow((position[cz]*cos_half_angle+vel*input_time[ct])/sc_sigma_zc,2)))
+          double density_z2c = 
+              2.157*exp(-0.5*(pow((position[cz]*cos_half_angle+vel*input_time[ct])/sc_sigma_zc,2)))
               *(1.0/sc_sigma_zc);
-          ex_2r = ex_2l_term1
-              *ex_term2_common
-              *1.999*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zr+vel*input_time[ct])/sc_sigma_zr,2)))
+          double density_z2r = 
+              1.999*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zr+vel*input_time[ct])/sc_sigma_zr,2)))
               *(1.0/sc_sigma_zr);                       
-          g = (spacetime_norm*(ex_1l+ex_1c+ex_1r)*(ex_2l+ex_2c+ex_2r)); // this is the integral value
-          /* END EXPENSIVE PART */
+
+	  double density_z1 = density_z1l + density_z1c + density_z1r;
+          double density_z2 = density_z2l + density_z2c + density_z2r;
+          g = (spacetime_norm
+	      *(density_y1 * density_x1 * density_z1) // bunch 1
+	      *(density_y2 * density_x2 * density_z2) // bunch 2
+	      ); // this is the summed value
+          // END COMPUTATIONALLY EXPENSIVE PORTION
 
           if(g >= 0.0) {
             sum_prob += g; // this is literally just the value of the integral
@@ -494,6 +489,8 @@ int HourglassSimulation::Run() {
         }//end loop on y
       }//end loop on x
       gaussian_dist[ct][cz] = sum_prob; // storing prob for 2-D z-t grid summed over x,y
+      // wp this isn't working
+      zvtx_pdf->Fill(position[cz],input_time[ct],sum_prob);
     }//end loop on z  
     z_norm[ct] = add_T;
     sum_T += add_T;

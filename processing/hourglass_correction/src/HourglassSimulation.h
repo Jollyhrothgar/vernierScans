@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TCanvas.h"
 #include "TObject.h"
 
@@ -83,6 +84,7 @@ class HourglassSimulation {
   TH1F* zdc_zvertex_dat;
   TH1F* zdc_zvertex_sim_norm;
   TH1F* zdc_zvertex_dat_norm;
+  TH2F* zvtx_pdf;
   TCanvas* zvertex_comparison_canvas;
   TCanvas* simulation_config_canvas;
   TCanvas* config_and_vertex_compare;

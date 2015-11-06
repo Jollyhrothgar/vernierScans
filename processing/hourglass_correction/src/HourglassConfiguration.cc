@@ -8,6 +8,7 @@
 #include <vector>
 #include <iomanip>
 #include <string>
+#include <cmath>
 
 HourglassConfiguration::HourglassConfiguration() {
   std::stringstream ss;
@@ -161,13 +162,18 @@ int HourglassConfiguration::GenerateConfigFileRange(
   double xing_angle = std::stod(par_["CROSSING_ANGLE_XZ"]);
   double z_scale    = std::stod(par_["Z_PROFILE_SCALE_VALUE"]);
 
-  double beta_star_min  = beta_star - beta_star*pct_range;
-  double beta_star_max  = beta_star + beta_star*pct_range;
-  double xing_angle_min = xing_angle - xing_angle*pct_range;
-  double xing_angle_max = xing_angle + xing_angle*pct_range;
-  double z_scale_min    = z_scale - z_scale*pct_range;
-  double z_scale_max    = z_scale + z_scale*pct_range;
+  std::cout << "BETA_STAR: " << par_["BETA_STAR"] << " (" << beta_star << ")" << std::endl;
+  std::cout << "CROSSING_ANGLE_XZ: " << par_["CROSSING_ANGLE_XZ"] << " (" << xing_angle << ")" << std::endl;
+  std::cout << "Z_PROFILE_SCALE_VALUE: " << par_["Z_PROFILE_SCALE_VALUE"] << " (" << z_scale << ")" << std::endl;
 
+  double beta_star_min  = beta_star - fabs(beta_star)*pct_range;
+  double beta_star_max  = beta_star + fabs(beta_star)*pct_range;
+  double xing_angle_min = xing_angle -fabs(xing_angle)*pct_range;
+  double xing_angle_max = xing_angle +fabs(xing_angle)*pct_range;
+  double z_scale_min    = z_scale - fabs(z_scale)*pct_range;
+  double z_scale_max    = z_scale + fabs(z_scale)*pct_range;
+
+  std::cout << xing_angle_min << ", " << xing_angle_max << std::endl;
   double beta_star_step  = (beta_star_max - beta_star_min)/steps;
   double xing_angle_step = (xing_angle_max - xing_angle_min)/steps;
   double z_scale_step    = (z_scale_max - z_scale_min)/steps;
