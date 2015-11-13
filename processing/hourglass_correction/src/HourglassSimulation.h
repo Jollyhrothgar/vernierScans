@@ -18,8 +18,10 @@ class HourglassSimulation {
   HourglassSimulation();
   ~HourglassSimulation();
   
-  // Uses whatever configuration we hardcode in the member function InitDefault
-  int InitDefault();
+  // Skip the config file, and initalize everything from hardcoded parameters.
+  // This is for emergency debugging, I wouldn't reccomend using it for anything
+  // else.
+  int ManualInit();
 
   // Use HourglassConfiguration to generate and load the default configuration
   // which is done manually in InitDefault. InitDefault is kept as a debugging
@@ -66,13 +68,54 @@ class HourglassSimulation {
 
   // Initialize space-time related coordinates
   int InitSpacetime();
+
+  // Performance Tracking Variables
+  long long unsigned int how_many_things = 0; 
+  std::map<std::string, long long unsigned int > time_tracker;
+
+  // Spatial Coordinates
+  std::vector<double> z_position_; 
+  std::vector<double> x_position_; 
+  std::vector<double> y_position_; 
+  std::vector<double> t_position_;
+
+  // Probability Distributions, and Related Variables
+  std::vector<double> poisson_dist_;
+  std::vector< double > t_dist_;
+  std::vector< double > z_dist_;
+  std::vector< double > z_norm_;
+  std::vector< std::vector<double> > gaussian_dist_;
+  unsigned long long cross_count;
+  unsigned long long event_limit_count;
+
+  // Luminosity variables
+
+  // total luminosity calculated in numeric integration
+  double luminosity_tot_; 
+  double luminosity_normalization_;
+  double spacetime_volume_;
   
   // Initializes plots, must be called after InitSpacetime, which is called by
   // either of the other init methods. I put it at the top of Run()
   int InitPlots();
 
+  // Final initialization, once I figure out what is initialized here, I can
+  // rename to something more sensible.
+  int InitProbabilityVariables();
+
   // compute factorial of integer n recursively 
   int Factorial( int n ); 
+
+  // The default model for luminosity we use. Only one crossing angle is
+  // observable in the resultant z-vertex profile, assuming that the horizontal
+  // and vertical scans are done separately (i.e. no diagonal scans).  Detects
+  // the scan displacement direction from the configuration provided
+  int GenerateDefaultModel();
+
+  // Uses the output of our luminosity model to generate a z-vertex profile.
+  // This is accomplished by sampling the z-t distribution created through
+  // partial integration of the luminosity model.
+  int GenerateZVertexProfile();
 
   // given random probabiltiy and ZDC resolution, smear z-vertex 
   double SmearZVertex( double rand_prob_res, double orig_z ); 
@@ -91,8 +134,8 @@ class HourglassSimulation {
   TCanvas* norm_config_and_vertex_compare;
   std::vector<TObject*> save_registry_;
 
-  // goodness of fits
  public:
+  // goodness of fits
   double chi2_test;
   double squares_residual;
  private:
@@ -155,7 +198,10 @@ class HourglassSimulation {
   double beta_star; 
   
   // X-Z crossing angle(-0.2<->0.2) mrad  
-  double angle; 
+  double angle_xz; 
+
+  // Y-Z crossing angle(-0.2<->0.2) mrad
+  double angle_yz;
   
   // Discreet Space-Time Variables
   

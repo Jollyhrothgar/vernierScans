@@ -39,6 +39,8 @@ HourglassSimulation::HourglassSimulation() {
   this_name = ss.str();
   std::cout << "Instantiating " << this_name << std::endl;
   override_save_file_ = false;
+  time_tracker["start"] = GetTime().count();
+  how_many_things = 0; 
 }
 
 HourglassSimulation::~HourglassSimulation() {
@@ -59,10 +61,10 @@ int HourglassSimulation::InitSpacetime() {
   y_low = -0.3;
   y_high = 0.3;
   y_range = y_high - y_low;
-  t_low =  -10.0e-8; // 200 nanoseconds
+  t_low =  -10.0e-8; // 200 nanoseconds total range
   t_high = 10.0e-8;
   t_range = t_high - t_low;
-  vel = 3.0e10; 
+  vel = 3.0e10; // speed of light (cm/s)
   N_bin_t = 80;
   N_bin_z = 600;
   N_bin_x = 60;
@@ -71,6 +73,25 @@ int HourglassSimulation::InitSpacetime() {
   binsizeX = x_range/N_bin_x;
   binsizeY = y_range/N_bin_y;
   binsizeT = t_range/N_bin_t;
+  
+  z_position_.resize(N_bin_z,0.0); 
+  x_position_.resize(N_bin_x,0.0); 
+  y_position_.resize(N_bin_y,0.0); 
+  t_position_.resize(N_bin_t,0.0);
+  
+  for(int t_ct = 0; t_ct < N_bin_t; t_ct++) { 
+    t_position_[t_ct] = (t_low + static_cast<double>(t_ct)*binsizeT + binsizeT/2.0);
+  }
+  for(int z_ct = 0; z_ct < N_bin_z; z_ct++) { 
+    z_position_[z_ct] = (z_low + static_cast<double>(z_ct)*binsizeZ + binsizeZ/2.0); 
+  }
+  for(int x_ct = 0; x_ct < N_bin_x; x_ct++) {
+    x_position_[x_ct] = (x_low + static_cast<double>(x_ct)*binsizeX + binsizeX/2.0); 
+  }
+  for(int y_ct = 0; y_ct < N_bin_y; y_ct++) {
+    y_position_[y_ct] = (y_low + static_cast<double>(y_ct)*binsizeY + binsizeY/2.0); 
+  }
+
   return 0;
 }
 
@@ -87,7 +108,8 @@ int HourglassSimulation::ShowConfig() {
     << std::setw(30) << "AVG_NUMBER_IONS_YELLOW_BEAM" << std::setw(20) <<  N_yell << std::endl
     << std::setw(30) << "BBC_ZDC_Z_VERTEX_OFFSET" << std::setw(20) <<  z_vtx_off << std::endl
     << std::setw(30) << "BETA_STAR" << std::setw(20) <<  beta_star << std::endl
-    << std::setw(30) << "CROSSING_ANGLE_XZ" << std::setw(20) <<  angle << std::endl
+    << std::setw(30) << "CROSSING_ANGLE_XZ" << std::setw(20) <<  angle_xz << std::endl
+    << std::setw(30) << "CROSSING_ANGLE_YZ" << std::setw(20) << angle_yz << std::endl
     << std::setw(30) << "FILLED_BUNCHES" << std::setw(20) <<  n_bunch << std::endl
     << std::setw(30) << "BUNCH_CROSSING_FREQUENCY" << std::setw(20) <<  freq << std::endl
     << std::setw(30) << "Z_PROFILE_SCALE_VALUE" << std::setw(20) <<  scale << std::endl
@@ -114,7 +136,8 @@ int HourglassSimulation::InitConfig() {
   N_yell      = std::stod(config_.GetPar("AVG_NUMBER_IONS_YELLOW_BEAM"));
   z_vtx_off   = std::stod(config_.GetPar("BBC_ZDC_Z_VERTEX_OFFSET"));
   beta_star   = std::stod(config_.GetPar("BETA_STAR" ));
-  angle       = std::stod(config_.GetPar("CROSSING_ANGLE_XZ"));
+  angle_xz    = std::stod(config_.GetPar("CROSSING_ANGLE_XZ"));
+  angle_yz    = std::stod(config_.GetPar("CROSSING_ANGLE_YZ"));
   n_bunch     = std::stod(config_.GetPar("FILLED_BUNCHES"));
   freq        = std::stod(config_.GetPar("BUNCH_CROSSING_FREQUENCY"));
   scale       = std::stod(config_.GetPar("Z_PROFILE_SCALE_VALUE"));
@@ -137,6 +160,10 @@ int HourglassSimulation::InitConfig() {
 
 int HourglassSimulation::InitFromConfig(const std::string& config_file) {
   HourglassConfiguration config;
+  
+  // in case for whatever god-forsaken reason you use a config file without all
+  // the config parameters...
+  config.SetDefaultValues(); 
   config.LoadConfigFile(config_file);
   config_ = config;
   InitConfig();
@@ -251,8 +278,9 @@ int HourglassSimulation::Compare(
   delete data;
   return 0;
 }
+
 // Hardcode Configuration here, used for last-resort debugging
-int HourglassSimulation::InitDefault() {
+int HourglassSimulation::ManualInit() {
 // DEFAULT Configuration - max x offset for 359711
   run_number_ = "359711";
   xoff = -0.1; 
@@ -274,7 +302,7 @@ int HourglassSimulation::InitDefault() {
   sc_mu_zr =  56.7*scale; 
   z_vtx_off = 9.38; // 
   beta_star = 85; // 85
-  angle = -0.08e-3; // wp was -0.08e-3
+  angle_xz = -0.08e-3; // wp was -0.08e-3
   return 0;
 }
 
@@ -341,49 +369,42 @@ double HourglassSimulation::SmearZVertex(double rand_prob_res, double orig_z){
 }
 
 int HourglassSimulation::Run() {
+  // store various timestamps through out the execuation of the code, for 
+  // bottleneck tracking.
   // Final initialization
   InitSpacetime();
   InitPlots();
+  InitProbabilityVariables();
   ShowConfig();
+  GenerateDefaultModel();
+  GenerateZVertexProfile();
 
-  // store various timestamps through out the execuation of the code, for 
-  // bottleneck tracking.
-  std::map<std::string, long long unsigned int > time_tracker;
-  time_tracker["start"] = GetTime().count();
-  long long unsigned int how_many_things = 0; 
+  time_tracker["phase_4"] = GetTime().count();
 
-  double poisson_dist[MAX_COLL];
-  double g;
-  double norm;
+  // FINISHED - show some timing statistics
+  std::cout << "phase_4" << std::endl;
+  std::cout << "job done" << std::endl;
+  std::cout << "cross_count: " << cross_count << std::endl;
+  std::cout << "event_limit_count: " << event_limit_count << std::endl;
+  std::cout << "Finished profiling code." << std::endl;
+  std::cout << "  raw time, phase_1: " << time_tracker["phase_1"] << std::endl;
+  std::cout << "  raw time, phase_2: " << time_tracker["phase_2"] << std::endl;
+  std::cout << "  raw time, phase_3: " << time_tracker["phase_3"] << std::endl;
+  std::cout << "  raw time, phase_4: " << time_tracker["phase_4"] << std::endl;
+  std::cout << "Milliseconds per phase: " << std::endl;
+  std::cout << "  phase_1: " << time_tracker["phase_1"] - time_tracker["start"]   << " milliseconds " << "(" << (time_tracker["phase_1"]-time_tracker["start"]  )/60000.0 << " minutes)"<< std::endl;
+  std::cout << "  phase_2: " << time_tracker["phase_2"] - time_tracker["phase_1"] << " milliseconds " << "(" << (time_tracker["phase_2"]-time_tracker["phase_1"])/60000.0 << " minutes)"<< std::endl;
+  std::cout << "  phase_3: " << time_tracker["phase_3"] - time_tracker["phase_2"] << " milliseconds " << "(" << (time_tracker["phase_3"]-time_tracker["phase_2"])/60000.0 << " minutes)"<< std::endl;
+  std::cout << "  phase_4: " << time_tracker["phase_4"] - time_tracker["phase_3"] << " milliseconds " << "(" << (time_tracker["phase_4"]-time_tracker["phase_3"])/60000.0 << " minutes)"<< std::endl;
+  std::cout << "In phase_3, we did: " << how_many_things << " things." << std::endl;
+  return 0;
+}
+
+int HourglassSimulation::GenerateDefaultModel() {
+  double tot_prob = 0.0; 
   double sigma_xz, sigma_yz;
-  double sum_prob;
   double sum_T;
   double add_T;
-
-  double gaussian_dist[N_bin_t][N_bin_z];//made it static to get over the size prob.
-  /** these coordinates actually represent discrete space */
-  double position[N_bin_z]; 
-  double xposition[N_bin_x]; 
-  double yposition[N_bin_y]; 
-  double input_time[N_bin_t];
-  /** end 4-space coordinates */
-
-  //variables for random numbers
-  srand(time(NULL));
-  bool condz, condt, condp; // condition t, condition z, condition poisoon? wp
-  double rand_prob_z, rand_prob_t, temp_prob_poisson;
-  double rand_prob_smear;
-
-  //coll_no dependent arrays
-  int N_coll = 0; // default initialization
-  int temp_t_index[20];
-  double coll_pos[20];
-  double coll_time[20]; 
-  double zpos = -999; // default initialization
-  double smeared_zpos;
-  double ztime;
-
-  double tot_prob = 0.0; 
   //========================== creating an array with cumulative Poisson Disribution =================================
   for(int no_count = 0; no_count < MAX_COLL; ++no_count) { 
     double p = ((exp(-rate))*(pow(rate, static_cast<double>(no_count))))/Factorial(no_count);
@@ -397,104 +418,90 @@ int HourglassSimulation::Run() {
       std::cout << "check poisson prob calculation. it is not normalised." << std::endl;
       std::cout << "prob is: " << tot_prob << std::endl;
     } else {
-      poisson_dist[no_count] = tot_prob;
+      poisson_dist_[no_count] = tot_prob;
     }
-    //std::cout << poisson_dist[no_count] << std::endl;//debug
+    //std::cout << poisson_dist_[no_count] << std::endl;//debug
   }
   std::cout << "done accumulating Poisson distbn." <<std::endl;
 
   time_tracker["phase_1"] = GetTime().count();
   std::cout << "phase_1" << std::endl;
 
-  // CREATING DISCREET SPACIAL ARRAYS REPRESENTING SPACETIME CORRDINATES
-  for(int t_ct = 0; t_ct < N_bin_t; t_ct++) { // dimension: time
-    input_time[t_ct] = (t_low + static_cast<double>(t_ct)*binsizeT + binsizeT/2.0);
-  }
-  for(int z_ct = 0; z_ct < N_bin_z; z_ct++) { // dimension: z
-    position[z_ct] = (z_low + static_cast<double>(z_ct)*binsizeZ + binsizeZ/2.0); 
-  }
-  for(int x_ct = 0; x_ct < N_bin_x; x_ct++) { // dimension: x
-    xposition[x_ct] = (x_low + static_cast<double>(x_ct)*binsizeX + binsizeX/2.0); 
-  }
-  for(int y_ct = 0; y_ct < N_bin_y; y_ct++) { // dimension: y
-    yposition[y_ct] = (y_low + static_cast<double>(y_ct)*binsizeY + binsizeY/2.0); 
-  }
-
   time_tracker["phase_2"] = GetTime().count();
   std::cout << "phase_2" << std::endl;
 
   //====================================separate t and z dist========================
   sum_T = 0.0;
-  sum_prob = 0.0;
-  double t_dist[N_bin_t];
-  double z_dist[N_bin_z];
-  double z_norm[N_bin_t];
+  luminosity_tot_ = 0.0;
   for(int ct=0; ct<N_bin_t; ct++) {
+    double t = t_position_[ct];
     add_T = 0.0;
-    z_norm[ct] = 0.0;
+    z_norm_[ct] = 0.0;
     for(int cz=0; cz<N_bin_z; cz++) {
-      // Why is angle seemingly dependant on position?
-      double half_angle = angle/2.;
-      double cos_half_angle = cos(half_angle);
-      sigma_xz = sigma_xstar*sqrt(1 + pow(cos_half_angle*position[cz]/beta_star, 2.0));//corrected for angle dependence, 2015
-      sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle*position[cz]/beta_star, 2.0));//corrected for angle dependence, 2015
-      norm = ((n_bunch*freq*N_blue*N_yell)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
-      double spacetime_norm = norm*binsizeX*binsizeY*binsizeZ*vel*binsizeT;
+      double z = z_position_[cz];
+      double half_angle_xz = angle_xz/2.;
+      double cos_half_angle_xz = cos(half_angle_xz);
+      sigma_xz = sigma_xstar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));//corrected for angle_xz dependence, 2015
+      sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));//corrected for angle_xz dependence, 2015
+      luminosity_normalization_ = ((n_bunch*freq*N_blue*N_yell)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
+      double spacetime_volume = binsizeX*binsizeY*binsizeZ*vel*binsizeT;
       for(int cx=0; cx<N_bin_x; cx++) {
-        double density_x1 = exp(-0.5*pow((xposition[cx]*cos_half_angle-xoff+half_angle*position[cz])/sigma_xz, 2.0)); // only one bunch is offset
-        double density_x2 = exp(-0.5*pow((xposition[cx]*cos_half_angle     -half_angle*position[cz])/sigma_xz, 2.0));
+	double x = x_position_[cx];
+        double density_x1 = exp(-0.5*pow((x*cos_half_angle_xz-xoff+half_angle_xz*z)/sigma_xz, 2.0)); // only one bunch is offset
+        double density_x2 = exp(-0.5*pow((x*cos_half_angle_xz     -half_angle_xz*z)/sigma_xz, 2.0));
         for(int cy=0; cy<N_bin_y; cy++) {    
+	  double y = y_position_[cy];
           // BEGIN COMPUTATIONALLY EXPENSIVE PORTION
-	  double density_y1 = exp(-0.5*pow((yposition[cy]-yoff)/sigma_yz,2.0));
-          double density_y2 = exp(-0.5*pow((yposition[cy]     )/sigma_yz,2.0));
+	  double density_y1 = exp(-0.5*pow((y-yoff)/sigma_yz,2.0)); // offset bunch
+          double density_y2 = exp(-0.5*pow((y     )/sigma_yz,2.0)); // fixed bunch
 
           // Z-profile density for first bunch
           double density_z1l =   
-              1.522*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zl-vel*input_time[ct])/sc_sigma_zl,2)))
+              1.522*exp(-0.5*(pow((z*cos_half_angle_xz-sc_mu_zl-vel*t)/sc_sigma_zl,2)))
               *(1.0/sc_sigma_zl);//corrected for rotaion in x-z plane, 2015
           double density_z1c = 
-              2.157*exp(-0.5*(pow((position[cz]*cos_half_angle-vel*input_time[ct])/sc_sigma_zc,2)))
+              2.157*exp(-0.5*(pow((z*cos_half_angle_xz-vel*t)/sc_sigma_zc,2)))
               *(1.0/sc_sigma_zc);//corrected for rotaion in x-z plane, 2015
           double density_z1r =
-              1.999*exp(-0.5*(pow((position[cz]*cos_half_angle-sc_mu_zr-vel*input_time[ct])/sc_sigma_zr,2)))
+              1.999*exp(-0.5*(pow((z*cos_half_angle_xz-sc_mu_zr-vel*t)/sc_sigma_zr,2)))
               *(1.0/sc_sigma_zr);
           
           // Z-profile density for second bunch
           double density_z2l =
-              1.522*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zl+vel*input_time[ct])/sc_sigma_zl,2)))
+              1.522*exp(-0.5*(pow((z*cos_half_angle_xz+sc_mu_zl+vel*t)/sc_sigma_zl,2)))
               *(1.0/sc_sigma_zl);
           double density_z2c = 
-              2.157*exp(-0.5*(pow((position[cz]*cos_half_angle+vel*input_time[ct])/sc_sigma_zc,2)))
+              2.157*exp(-0.5*(pow((z*cos_half_angle_xz+vel*t)/sc_sigma_zc,2)))
               *(1.0/sc_sigma_zc);
           double density_z2r = 
-              1.999*exp(-0.5*(pow((position[cz]*cos_half_angle+sc_mu_zr+vel*input_time[ct])/sc_sigma_zr,2)))
+              1.999*exp(-0.5*(pow((z*cos_half_angle_xz+sc_mu_zr+vel*t)/sc_sigma_zr,2)))
               *(1.0/sc_sigma_zr);                       
 
 	  double density_z1 = density_z1l + density_z1c + density_z1r;
           double density_z2 = density_z2l + density_z2c + density_z2r;
-          g = (spacetime_norm
+          double d_luminosity_ = (luminosity_normalization_ * spacetime_volume
 	      *(density_y1 * density_x1 * density_z1) // bunch 1
 	      *(density_y2 * density_x2 * density_z2) // bunch 2
 	      ); // this is the summed value
           // END COMPUTATIONALLY EXPENSIVE PORTION
 
-          if(g >= 0.0) {
-            sum_prob += g; // this is literally just the value of the integral
-            add_T += g; // this is the same thing as sum_prob?
+          if(d_luminosity_ >= 0.0) {
+            luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
+            add_T += d_luminosity_; // this is the same thing as luminosity_tot_?
           } else {
-            std::cout << "Gaussian prob. negative. Check code." <<  std::endl;
+            std::cout << "Luminosity integral generated negative value, there is an error in the code." <<  std::endl;
             return 0;
           }
           how_many_things++;
         }//end loop on y
       }//end loop on x
-      gaussian_dist[ct][cz] = sum_prob; // storing prob for 2-D z-t grid summed over x,y
+      gaussian_dist_[ct][cz] = luminosity_tot_; // storing prob for 2-D z-t grid summed over x,y
       // wp this isn't working
-      zvtx_pdf->Fill(position[cz],input_time[ct],sum_prob);
+      zvtx_pdf->Fill(z,t,luminosity_tot_);
     }//end loop on z  
-    z_norm[ct] = add_T;
+    z_norm_[ct] = add_T;
     sum_T += add_T;
-    t_dist[ct] = sum_T;//storing prob in t with z-prob summed over
+    t_dist_[ct] = sum_T;//storing prob in t with z-prob summed over
   }//end loop on t
 
   time_tracker["phase_3"] = GetTime().count();
@@ -502,12 +509,31 @@ int HourglassSimulation::Run() {
 
   // should match our actual luminosity when parameters are configured
   // correctly.
-  std::cout << "Luminosity = " << sum_prob << std::endl;
+  std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
   std::cout << "done accumulating Gaussian distbns." << std::endl;
 
+  return 0;
+}
+
+int HourglassSimulation::GenerateZVertexProfile() {
+  //variables for random numbers
+  srand(time(NULL));
+  bool condz, condt, condp; // condition t, condition z, condition poisson, what are these, wp
+  double rand_prob_z, rand_prob_t, temp_prob_poisson;
+  double rand_prob_smear;
+  
+  //coll_no dependent arrays
+  int N_coll = 0; // default initialization
+  int temp_t_index[20];
+  double coll_pos[20];
+  double coll_time[20]; 
+  double zpos = -999; // default initialization
+  double smeared_zpos;
+  double ztime;
+
   //====================running over a no. of bunch crossings==================================
-  unsigned long int cross_count = 0;
-  unsigned long int event_limit_count = 0;
+  cross_count = 0;
+  event_limit_count = 0;
   int nonzero_event_count = 0;//debugging
   while((cross_count < 20000000) && (event_limit_count < (unsigned int)count_norm)) { 
     //=================== counting crossing number required to reach event limit =============
@@ -517,10 +543,10 @@ int HourglassSimulation::Run() {
     condp = false;
     int l = 0;
     while((condp == false) && (l < (MAX_COLL - 1))) {
-      if(temp_prob_poisson <= poisson_dist[0]) {
+      if(temp_prob_poisson <= poisson_dist_[0]) {
         N_coll = 0;
         condp = true;
-      } else if((temp_prob_poisson > poisson_dist[l]) && (temp_prob_poisson <= poisson_dist[l + 1])) { // this is why we set max_coll to 5 + 1
+      } else if((temp_prob_poisson > poisson_dist_[l]) && (temp_prob_poisson <= poisson_dist_[l + 1])) { // this is why we set max_coll to 5 + 1
         N_coll = l + 1;
         condp = true;
       } else {
@@ -541,16 +567,16 @@ int HourglassSimulation::Run() {
     //========================produce as many collisions at diff positions=================
     for(int coll_no = 0; coll_no < N_coll; coll_no++) {
       //=================CHOSSING TIME T FROM GAUSSIAN DISTRIBUTION=====================
-      rand_prob_t = sum_prob*fabs(static_cast<double>(rand())/RAND_MAX);
+      rand_prob_t = luminosity_tot_*fabs(static_cast<double>(rand())/RAND_MAX);
       condt = false;
       int find_t = 0;
       while((condt == false) && (find_t<(N_bin_t - 1))) {
-        if(rand_prob_t <= t_dist[0]) {
-          coll_time[coll_no] = input_time[0];
+        if(rand_prob_t <= t_dist_[0]) {
+          coll_time[coll_no] = t_position_[0];
           temp_t_index[coll_no] = 0;
           condt = true;
-        } else if((rand_prob_t > t_dist[find_t]) && (rand_prob_t <= t_dist[find_t + 1])) {
-          coll_time[coll_no] = input_time[find_t + 1];
+        } else if((rand_prob_t > t_dist_[find_t]) && (rand_prob_t <= t_dist_[find_t + 1])) {
+          coll_time[coll_no] = t_position_[find_t + 1];
           temp_t_index[coll_no] = find_t + 1;
           condt = true;
         } else {
@@ -562,18 +588,18 @@ int HourglassSimulation::Run() {
 
       //=================CHOSSING Z POSITIONSFROM GAUSSIAN DISTRIBUTION=====================
       for(int cz=0; cz<N_bin_z; cz++) {
-        z_dist[cz] = gaussian_dist[temp_t_index[coll_no]][cz];
+        z_dist_[cz] = gaussian_dist_[temp_t_index[coll_no]][cz];
       }//selecting the z-column with t-row fixed
 
-      rand_prob_z = gaussian_dist[temp_t_index[coll_no]][0] + (z_norm[temp_t_index[coll_no]])*fabs(static_cast<double>(rand())/RAND_MAX);
+      rand_prob_z = gaussian_dist_[temp_t_index[coll_no]][0] + (z_norm_[temp_t_index[coll_no]])*fabs(static_cast<double>(rand())/RAND_MAX);
       condz = false;
       int find_z = 0;
       while((condz == false) && (find_z < (N_bin_z - 1))) {
-        if(rand_prob_z <= z_dist[0]) {
-          coll_pos[coll_no] = position[0];
+        if(rand_prob_z <= z_dist_[0]) {
+          coll_pos[coll_no] = z_position_[0];
           condz = true;
-        } else if((rand_prob_z > z_dist[find_z]) && (rand_prob_z <= z_dist[find_z + 1])) {
-          coll_pos[coll_no] = position[find_z + 1];
+        } else if((rand_prob_z > z_dist_[find_z]) && (rand_prob_z <= z_dist_[find_z + 1])) {
+          coll_pos[coll_no] = z_position_[find_z + 1];
           condz = true;
         } else {
           condz = false;
@@ -601,22 +627,20 @@ int HourglassSimulation::Run() {
       std::cout << "could not get smeared posn, check code." << std::endl;
     }
   }// end loop over no. of events
-  time_tracker["phase_4"] = GetTime().count();
-  std::cout << "phase_4" << std::endl;
-  std::cout << "job done" << std::endl;
-  std::cout << "cross_count: " << cross_count << std::endl;
-  std::cout << "event_limit_count: " << event_limit_count << std::endl;
-  std::cout << "Finished profiling code." << std::endl;
-  std::cout << "  raw time, phase_1: " << time_tracker["phase_1"] << std::endl;
-  std::cout << "  raw time, phase_2: " << time_tracker["phase_2"] << std::endl;
-  std::cout << "  raw time, phase_3: " << time_tracker["phase_3"] << std::endl;
-  std::cout << "  raw time, phase_4: " << time_tracker["phase_4"] << std::endl;
-  std::cout << "Milliseconds per phase: " << std::endl;
-  std::cout << "  phase_1: " << time_tracker["phase_1"] - time_tracker["start"]   << " milliseconds " << "(" << (time_tracker["phase_1"]-time_tracker["start"]  )/60000.0 << " minutes)"<< std::endl;
-  std::cout << "  phase_2: " << time_tracker["phase_2"] - time_tracker["phase_1"] << " milliseconds " << "(" << (time_tracker["phase_2"]-time_tracker["phase_1"])/60000.0 << " minutes)"<< std::endl;
-  std::cout << "  phase_3: " << time_tracker["phase_3"] - time_tracker["phase_2"] << " milliseconds " << "(" << (time_tracker["phase_3"]-time_tracker["phase_2"])/60000.0 << " minutes)"<< std::endl;
-  std::cout << "  phase_4: " << time_tracker["phase_4"] - time_tracker["phase_3"] << " milliseconds " << "(" << (time_tracker["phase_4"]-time_tracker["phase_3"])/60000.0 << " minutes)"<< std::endl;
-  std::cout << "In phase_3, we did: " << how_many_things << " things." << std::endl;
+  return 0;
+}
+
+int HourglassSimulation::InitProbabilityVariables() {
+  poisson_dist_.resize(MAX_COLL);
+  gaussian_dist_.resize(N_bin_t);
+  t_dist_.resize(N_bin_t);
+  z_dist_.resize(N_bin_z);
+  z_norm_.resize(N_bin_t); // maybe a bug? Is N_bin_t the same as N_bin_z ? wp
+  for(auto i = gaussian_dist_.begin(); i != gaussian_dist_.end(); ++i){
+    (*i).resize(N_bin_z);
+  }
+  luminosity_tot_ = 0.;
+  luminosity_normalization_ = 0.;
   return 0;
 }
 
@@ -631,8 +655,8 @@ int HourglassSimulation::SaveFigures( const std::string& figure_output_dir = "./
   std::stringstream tfile_name;
   std::stringstream name;
 
-  tfile_name << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle << "_HourglassSimulation.root"; 
-  name       << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle << "_HourglassSimulation.pdf";
+  tfile_name << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle_xz << "_HourglassSimulation.root"; 
+  name       << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle_xz << "_HourglassSimulation.pdf";
   
   if(override_save_file_) {
     tfile_name.str("");

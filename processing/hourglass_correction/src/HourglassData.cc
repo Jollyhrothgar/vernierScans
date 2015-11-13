@@ -161,7 +161,9 @@ int HourglassData::InitHistograms() {
     std::stringstream name;
     std::stringstream title;
     name << "bbc_zvtx_step_" << i;
-    title << scan_name << " scan, " << displacement << " microns step, Run : "
+    title << scan_name << " scan, step: " << i 
+      << ", displacement: "  << (planned_steps_[i] * 1000.) << " microns, "
+      << "bpm: " << displacement << " Run : "
         << run_number_ << ", BBC Z-vertex distribution;z-vertex;counts";
     TH1F* bbc = new
         TH1F(name.str().c_str(),title.str().c_str(),nbins,min_zvtx,max_zvtx);
@@ -170,8 +172,10 @@ int HourglassData::InitHistograms() {
     name.str("");
     title.str("");
     name << "zdc_zvtx_step_" << i;
-    title << scan_name << " scan, " << displacement << " microns step, Run : "
-        << run_number_ << ", ZDC Z-vertex distribution;z-vertex;counts";
+    title << scan_name << " scan, step: " << i 
+      << ", displacement: "  << (planned_steps_[i] * 1000.) << " microns, "
+      << "bpm: " << displacement << " Run : "
+      << run_number_ << ", ZDC Z-vertex distribution;z-vertex;counts";
     TH1F* zdc = new
         TH1F(name.str().c_str(),title.str().c_str(),nbins,min_zvtx,max_zvtx);
     zdc->Sumw2();

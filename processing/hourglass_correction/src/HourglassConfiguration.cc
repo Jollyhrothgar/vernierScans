@@ -37,6 +37,7 @@ int HourglassConfiguration::GenerateEmptyConfigFile() {
   par_["ZDC_VERTEX_DISTRIBUTION_NAME"]   = ""; // HourglassData (done)
   par_["BETA_STAR" ]                     = ""; // GOAL: find this, SetDefaultValues
   par_["CROSSING_ANGLE_XZ"]              = ""; // GOAL: find this, SetDefaultValues
+  par_["CROSSING_ANGLE_YZ"]              = ""; // GOAL: find this, SetDefaultValues
   par_["FILLED_BUNCHES"]                 = ""; // Fixed, SetDefaultValues
   par_["BUNCH_CROSSING_FREQUENCY"]       = ""; // Fixed, SetDefaultValues
   par_["Z_PROFILE_SCALE_VALUE"]          = ""; // Fixed, SetDefaultValues
@@ -65,9 +66,10 @@ int HourglassConfiguration::SetDefaultValues() {
   ModifyConfigParameter("ZDC_VERTEX_DISTRIBUTION_NAME"  , "zdc_zvtx_step_0");
   ModifyConfigParameter("BETA_STAR"                     , "85.");
   ModifyConfigParameter("CROSSING_ANGLE_XZ"             , "-0.08e-3");
+  ModifyConfigParameter("CROSSING_ANGLE_YZ"             , "0.");
   ModifyConfigParameter("FILLED_BUNCHES"                , "107");
   ModifyConfigParameter("BUNCH_CROSSING_FREQUENCY"      , "78213.");
-  ModifyConfigParameter("Z_PROFILE_SCALE_VALUE"         , "1.5");
+  ModifyConfigParameter("Z_PROFILE_SCALE_VALUE"         , "2.0");
   ModifyConfigParameter("MULTIPLE_COLLISION_RATE"       , "0.001");
   ModifyConfigParameter("MAX_COLLISIONS"                , "5");
   ModifyConfigParameter("Z_BUNCH_WIDTH_LEFT_GAUSSIAN"   , "35.15"); 
@@ -159,27 +161,35 @@ int HourglassConfiguration::GenerateConfigFileRange(
 ){
   LoadConfigFile(base_config);
   double beta_star  = std::stod(par_["BETA_STAR"]);
-  double xing_angle = std::stod(par_["CROSSING_ANGLE_XZ"]);
+  double xing_angle_xz = std::stod(par_["CROSSING_ANGLE_XZ"]);
+  double xing_angle_yz = std::stod(par_["CROSSING_ANGLE_YZ"]);
+
   double z_scale    = std::stod(par_["Z_PROFILE_SCALE_VALUE"]);
 
   std::cout << "BETA_STAR: " << par_["BETA_STAR"] << " (" << beta_star << ")" << std::endl;
-  std::cout << "CROSSING_ANGLE_XZ: " << par_["CROSSING_ANGLE_XZ"] << " (" << xing_angle << ")" << std::endl;
+  std::cout << "CROSSING_ANGLE_XZ: " << par_["CROSSING_ANGLE_XZ"] << " (" << xing_angle_xz << ")" << std::endl;
+  std::cout << "CROSSING_ANGLE_YZ: " << par_["CROSSING_ANGLE_YZ"] << " (" << xing_angle_yz << ")" << std::endl;
   std::cout << "Z_PROFILE_SCALE_VALUE: " << par_["Z_PROFILE_SCALE_VALUE"] << " (" << z_scale << ")" << std::endl;
 
   double beta_star_min  = beta_star - fabs(beta_star)*pct_range;
   double beta_star_max  = beta_star + fabs(beta_star)*pct_range;
-  double xing_angle_min = xing_angle -fabs(xing_angle)*pct_range;
-  double xing_angle_max = xing_angle +fabs(xing_angle)*pct_range;
+  double xing_angle_xz_min = xing_angle_xz -fabs(xing_angle_xz)*pct_range;
+  double xing_angle_xz_max = xing_angle_xz +fabs(xing_angle_xz)*pct_range;
+  double xing_angle_yz_min = xing_angle_yz -fabs(xing_angle_yz)*pct_range;
+  double xing_angle_yz_max = xing_angle_yz +fabs(xing_angle_yz)*pct_range;
   double z_scale_min    = z_scale - fabs(z_scale)*pct_range;
   double z_scale_max    = z_scale + fabs(z_scale)*pct_range;
 
-  std::cout << xing_angle_min << ", " << xing_angle_max << std::endl;
+  std::cout << xing_angle_xz_min << ", " << xing_angle_xz_max << std::endl;
+  std::cout << xing_angle_yz_min << ", " << xing_angle_yz_max << std::endl;
   double beta_star_step  = (beta_star_max - beta_star_min)/steps;
-  double xing_angle_step = (xing_angle_max - xing_angle_min)/steps;
+  double xing_angle_xz_step = (xing_angle_xz_max - xing_angle_xz_min)/steps;
+  double xing_angle_yz_step = (xing_angle_yz_max - xing_angle_yz_min)/steps;
   double z_scale_step    = (z_scale_max - z_scale_min)/steps;
 
   std::vector<double> v_beta;
-  std::vector<double> v_xing;
+  std::vector<double> v_xing_xz;
+  std::vector<double> v_xing_yz;
   std::vector<double> v_scale;
 
   for(beta_star = beta_star_min; beta_star <= beta_star_max; beta_star+=beta_star_step) {
@@ -187,9 +197,13 @@ int HourglassConfiguration::GenerateConfigFileRange(
     std::cout << v_beta.back() << ", ";
   }
   std::cout << std::endl;
-  for(xing_angle = xing_angle_min; xing_angle <= xing_angle_max; xing_angle+=xing_angle_step) {
-    v_xing.push_back(xing_angle);
-    std::cout << v_xing.back() << ", ";
+  for(xing_angle_xz = xing_angle_xz_min; xing_angle_xz <= xing_angle_xz_max; xing_angle_xz+=xing_angle_xz_step) {
+    v_xing_xz.push_back(xing_angle_xz);
+    std::cout << v_xing_xz.back() << ", ";
+  }
+  for(xing_angle_yz = xing_angle_yz_min; xing_angle_yz <= xing_angle_yz_max; xing_angle_yz+=xing_angle_yz_step) {
+    v_xing_yz.push_back(xing_angle_yz);
+    std::cout << v_xing_yz.back() << ", ";
   }
   std::cout << std::endl;
   for(z_scale = z_scale_min; z_scale <= z_scale_max; z_scale += z_scale_step) {

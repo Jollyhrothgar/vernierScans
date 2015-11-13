@@ -31,6 +31,9 @@ class HourglassData {
   int SaveSimulationConfigData(const std::string& output_h);
  private:
   std::string run_number_;
+
+  // This loads the epoch times which bound each scan step. We use this after
+  // merging the bbc dst data with the prdf time stamped data.
   int LoadEpochStepBoundaries();
   int LoadPlannedSteps();
   int InitHistograms(); 
