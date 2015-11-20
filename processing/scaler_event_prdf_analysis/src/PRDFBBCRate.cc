@@ -149,6 +149,10 @@ int PRDFBBCRate::Run() {
       // std::cout << "Live rate, BBCLL1(>0 tubes): " << std::setw(12) << bbc_n_live_counts / elapsed_time  << " Hz " << std::endl;
       // std::cout << "Test rate, BBCLL1(>0 tubes): " << std::setw(12) << test_rate << " Hz " << std::endl;
       float bbc_w_livetime = bbc_w_live_counts/bbc_w_raw_counts;
+
+      // Already have a graph called g_bbc_w_live
+      g_bbc_w_live->SetPoint(g_bbc_w_live->GetN(), time, bbc_w_livetime);
+
       float bbc_n_livetime = bbc_n_live_counts/bbc_n_raw_counts;
       float clock_livetime = clock_live_counts/clock_raw_counts;
       float zdc_w_livetime = zdc_w_live_counts/zdc_w_raw_counts;

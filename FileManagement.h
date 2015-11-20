@@ -262,4 +262,23 @@ std::string hourglass_data_file[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/plots/367138_HourglassData.root"
 };
 
+std::string z_profile_density_blue[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_359711_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_360879_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_362492_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_364636_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_365866_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_366605_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/bwcm_zprofile_367138_density.txt"
+};
+
+std::string z_profile_density_yellow[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_359711_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_360879_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_362492_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_364636_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_365866_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_366605_density.txt",
+  "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_367138_density.txt"
+};
 #endif

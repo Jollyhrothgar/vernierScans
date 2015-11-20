@@ -12,6 +12,10 @@ int Run_HourglassSimulation(
   std::string compare_file = file_stub + "_compare.root";
   sim.InitFromConfig(config_file);
   sim.OverrideSaveFile(file_stub); // Use for batch jobs where complex file name would be confusing.
+  sim.LoadZProfile(
+    z_profile_density_blue[run_index],
+    z_profile_density_yellow[run_index]
+  );
   sim.Run();
   sim.Compare(hourglass_data_file[run_index]);
   sim.SaveFigures(plots_dir);

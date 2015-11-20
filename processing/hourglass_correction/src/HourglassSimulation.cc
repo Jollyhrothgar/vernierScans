@@ -15,6 +15,7 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
+#include <algorithm>
 
 #include "TF1.h"
 #include "TH1F.h"
@@ -22,6 +23,8 @@
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TPaveText.h"
+#include "TGraph.h"
+
 #include "TError.h"
 
 #define PI 3.14159265
@@ -61,11 +64,11 @@ int HourglassSimulation::InitSpacetime() {
   y_low = -0.3;
   y_high = 0.3;
   y_range = y_high - y_low;
-  t_low =  -10.0e-8; // 200 nanoseconds total range
+  t_low =  -10.0e-8; // 200 nanoseconds total range, represents total interaction time.
   t_high = 10.0e-8;
   t_range = t_high - t_low;
   vel = 3.0e10; // speed of light (cm/s)
-  N_bin_t = 80;
+  N_bin_t = 80; // nanoseconds?
   N_bin_z = 600;
   N_bin_x = 60;
   N_bin_y = 60;
@@ -313,13 +316,6 @@ int HourglassSimulation::InitPlots() {
                100,z_low,z_high);  // this must match the HourglassData zvtx
                                    // histogram binning and range if we are 
                                    // to compare.
-  zvtx_pdf = 
-      new TH2F("zvtx_pdf",
-               "Gaussian PDF Distribution;z vertex;counts;time;counts",
-               100,z_low,z_high,
-               100,t_low,t_high);
-
-  save_registry_.push_back(zvtx_pdf);
   zdc_zvertex_sim->SetLineColor(kRed);
   zdc_zvertex_sim->SetLineWidth(2);
   zdc_zvertex_sim->Sumw2();
@@ -392,20 +388,121 @@ int HourglassSimulation::Run() {
   std::cout << "  raw time, phase_3: " << time_tracker["phase_3"] << std::endl;
   std::cout << "  raw time, phase_4: " << time_tracker["phase_4"] << std::endl;
   std::cout << "Milliseconds per phase: " << std::endl;
-  std::cout << "  phase_1: " << time_tracker["phase_1"] - time_tracker["start"]   << " milliseconds " << "(" << (time_tracker["phase_1"]-time_tracker["start"]  )/60000.0 << " minutes)"<< std::endl;
-  std::cout << "  phase_2: " << time_tracker["phase_2"] - time_tracker["phase_1"] << " milliseconds " << "(" << (time_tracker["phase_2"]-time_tracker["phase_1"])/60000.0 << " minutes)"<< std::endl;
-  std::cout << "  phase_3: " << time_tracker["phase_3"] - time_tracker["phase_2"] << " milliseconds " << "(" << (time_tracker["phase_3"]-time_tracker["phase_2"])/60000.0 << " minutes)"<< std::endl;
-  std::cout << "  phase_4: " << time_tracker["phase_4"] - time_tracker["phase_3"] << " milliseconds " << "(" << (time_tracker["phase_4"]-time_tracker["phase_3"])/60000.0 << " minutes)"<< std::endl;
+  std::cout 
+    << "  phase_1: " 
+    << time_tracker["phase_1"] - time_tracker["start"]   
+    << " milliseconds " 
+    << "(" 
+    << (time_tracker["phase_1"]-time_tracker["start"]  )/60000.0 
+    << " minutes)"
+    << std::endl;
+  std::cout 
+    << "  phase_2: " 
+    << time_tracker["phase_2"] - time_tracker["phase_1"] 
+    << " milliseconds " 
+    << "(" 
+    << (time_tracker["phase_2"]-time_tracker["phase_1"])/60000.0 
+    << " minutes)"
+    << std::endl;
+  std::cout 
+    << "  phase_3: " 
+    << time_tracker["phase_3"] - time_tracker["phase_2"] 
+    << " milliseconds " 
+    << "(" 
+    << (time_tracker["phase_3"]-time_tracker["phase_2"])/60000.0 
+    << " minutes)"
+    << std::endl;
+  std::cout 
+    << "  phase_4: " 
+    << time_tracker["phase_4"] - time_tracker["phase_3"] 
+    << " milliseconds " 
+    << "(" 
+    << (time_tracker["phase_4"]-time_tracker["phase_3"])/60000.0 
+    << " minutes)"
+    << std::endl;
   std::cout << "In phase_3, we did: " << how_many_things << " things." << std::endl;
   return 0;
 }
 
+int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name) {
+  std::ifstream z_bunch_profile_blue(blue_f_name.c_str());
+  std::ifstream z_bunch_profile_yell(yell_f_name.c_str());
+ 
+  
+  TGraph* z_bunch_profile_blue_ = new TGraph();
+  TGraph* z_bunch_profile_yell_ = new TGraph();
+  z_bunch_profile_blue_->SetName("blue_z_bunch_profile");
+  z_bunch_profile_yell_->SetName("yell_z_bunch_profile");
+  if(!z_bunch_profile_blue) {
+    std::cerr << "There was a problem loading the blue bunch profile, your code is gonna crash." << std::endl;
+    std::cerr << "Here is some diagnostic information: " << std::endl;
+    std::cerr << "ZProfile file : " << blue_f_name << std::endl;
+    std::cerr << "Check that you have the right file name and profile name and try again." << std::endl;
+    return 1;
+  }
+  if(!z_bunch_profile_yell) {
+    std::cerr << "There was a problem loading the yellow bunch profile, your code is gonna crash." << std::endl;
+    std::cerr << "Here is some diagnostic information: " << std::endl;
+    std::cerr << "ZProfile file : " << yell_f_name << std::endl;
+    std::cerr << "Check that you have the right file name and profile name and try again." << std::endl;
+    return 1;
+  }
+
+  double z_pos = 0;
+  double density = 0;
+  while(z_bunch_profile_blue >> z_pos >> density) {
+    z_profile_blue[z_pos] = density;
+    z_bunch_profile_blue_->SetPoint(z_bunch_profile_blue_->GetN(), z_pos, density);
+  }
+  z_pos = 0;
+  density = 0;
+  while(z_bunch_profile_yell >> z_pos >> density) {
+    z_profile_yell[z_pos] = density;
+    z_bunch_profile_yell_->SetPoint(z_bunch_profile_blue_->GetN(), z_pos, density);
+  }
+  save_registry_.push_back(z_bunch_profile_blue_);
+  save_registry_.push_back(z_bunch_profile_yell_);
+  return 0;
+}
+
+void HourglassSimulation::TransformBlueBeamWidth(double& beam_width, double x, double z, double angle) {
+  // Apply Beta Squeeze + Rotation
+  double sigma_orig = beam_width;
+  RotateBlueCoordinates(x,z,angle);
+  double sigma = sigma_orig*sqrt(1+pow(z/beta_star,2.0));
+  beam_width = sigma;
+}
+
+void HourglassSimulation::TransformYellBeamWidth(double& beam_width, double x, double z, double angle) {
+  // Apply Beta Squeeze + Rotation
+  double sigma_orig = beam_width;
+  RotateYellCoordinates(x,z,angle);
+  double sigma = sigma_orig*sqrt(1+pow(z/beta_star,2.0));
+  beam_width = sigma;
+}
+
+void HourglassSimulation::RotateBlueCoordinates(double& c, double& z, double angle) {
+  double c_orig = c;
+  double z_orig = z;
+  c = c_orig*cos(angle/2.)-z_orig*sin(angle/2.);
+  z = z_orig*cos(angle/2.)+c_orig*sin(angle/2.);
+}
+
+void HourglassSimulation::RotateYellCoordinates(double& c, double& z, double angle) {
+  double c_orig = c;
+  double z_orig = z;
+  c = c_orig*cos(angle/2.)+z_orig*sin(angle/2.);
+  z = z_orig*cos(angle/2.)-c_orig*sin(angle/2.);
+}
+
 int HourglassSimulation::GenerateDefaultModel() {
+  time_tracker["phase_1"] = GetTime().count();
+  std::cout << "phase_1" << std::endl;
   double tot_prob = 0.0; 
   double sigma_xz, sigma_yz;
   double sum_T;
   double add_T;
-  //========================== creating an array with cumulative Poisson Disribution =================================
+  //================ creating an array with cumulative Poisson Disribution ======================
   for(int no_count = 0; no_count < MAX_COLL; ++no_count) { 
     double p = ((exp(-rate))*(pow(rate, static_cast<double>(no_count))))/Factorial(no_count);
     if(p > 0.0) {
@@ -423,9 +520,6 @@ int HourglassSimulation::GenerateDefaultModel() {
     //std::cout << poisson_dist_[no_count] << std::endl;//debug
   }
   std::cout << "done accumulating Poisson distbn." <<std::endl;
-
-  time_tracker["phase_1"] = GetTime().count();
-  std::cout << "phase_1" << std::endl;
 
   time_tracker["phase_2"] = GetTime().count();
   std::cout << "phase_2" << std::endl;
@@ -455,6 +549,18 @@ int HourglassSimulation::GenerateDefaultModel() {
 	  double density_y1 = exp(-0.5*pow((y-yoff)/sigma_yz,2.0)); // offset bunch
           double density_y2 = exp(-0.5*pow((y     )/sigma_yz,2.0)); // fixed bunch
 
+	  double z_blue = z*cos_half_angle_xz- 1.0e-9*vel*t;
+	  double z_yell = z*cos_half_angle_xz+ 1.0e-9*vel*t;
+
+	  double density_z1 = (z_profile_blue.lower_bound(z_blue))->second;
+	  double density_z2 = (z_profile_blue.lower_bound(z_yell))->second;
+          
+	  double d_luminosity_ = (luminosity_normalization_ * spacetime_volume
+	      *(density_y1 * density_x1 * density_z1) // bunch 1
+	      *(density_y2 * density_x2 * density_z2) // bunch 2
+	      ); // this is the summed value
+
+	  /* Old Z-Model
           // Z-profile density for first bunch
           double density_z1l =   
               1.522*exp(-0.5*(pow((z*cos_half_angle_xz-sc_mu_zl-vel*t)/sc_sigma_zl,2)))
@@ -483,6 +589,9 @@ int HourglassSimulation::GenerateDefaultModel() {
 	      *(density_y1 * density_x1 * density_z1) // bunch 1
 	      *(density_y2 * density_x2 * density_z2) // bunch 2
 	      ); // this is the summed value
+	  */
+
+
           // END COMPUTATIONALLY EXPENSIVE PORTION
 
           if(d_luminosity_ >= 0.0) {
@@ -496,8 +605,6 @@ int HourglassSimulation::GenerateDefaultModel() {
         }//end loop on y
       }//end loop on x
       gaussian_dist_[ct][cz] = luminosity_tot_; // storing prob for 2-D z-t grid summed over x,y
-      // wp this isn't working
-      zvtx_pdf->Fill(z,t,luminosity_tot_);
     }//end loop on z  
     z_norm_[ct] = add_T;
     sum_T += add_T;
@@ -539,7 +646,7 @@ int HourglassSimulation::GenerateZVertexProfile() {
     //=================== counting crossing number required to reach event limit =============
     cross_count++; 
     //====================choosing no. of events for a crossing from Poisson distbn=======================
-    temp_prob_poisson = fabs(static_cast<double>(rand())/RAND_MAX);
+    temp_prob_poisson = fabs(static_cast<double>(rand())/RAND_MAX); // (0,1)
     condp = false;
     int l = 0;
     while((condp == false) && (l < (MAX_COLL - 1))) {
@@ -586,7 +693,7 @@ int HourglassSimulation::GenerateZVertexProfile() {
       }
       ztime = coll_time[coll_no];
 
-      //=================CHOSSING Z POSITIONSFROM GAUSSIAN DISTRIBUTION=====================
+      //=================CHOSSING Z POSITION FROM GAUSSIAN DISTRIBUTION=====================
       for(int cz=0; cz<N_bin_z; cz++) {
         z_dist_[cz] = gaussian_dist_[temp_t_index[coll_no]][cz];
       }//selecting the z-column with t-row fixed

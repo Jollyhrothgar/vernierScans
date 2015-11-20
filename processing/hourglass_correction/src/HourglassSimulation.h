@@ -6,6 +6,7 @@
 #include <vector>
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TGraph.h"
 #include "TCanvas.h"
 #include "TObject.h"
 
@@ -94,6 +95,9 @@ class HourglassSimulation {
   double luminosity_tot_; 
   double luminosity_normalization_;
   double spacetime_volume_;
+  double x_profile_norm_;
+  double y_profile_norm_;
+  double z_profile_norm_;
   
   // Initializes plots, must be called after InitSpacetime, which is called by
   // either of the other init methods. I put it at the top of Run()
@@ -110,6 +114,15 @@ class HourglassSimulation {
   // observable in the resultant z-vertex profile, assuming that the horizontal
   // and vertical scans are done separately (i.e. no diagonal scans).  Detects
   // the scan displacement direction from the configuration provided
+  //
+  // This function is relatively speedy, but requires that in our luminosity
+  // calculation, that we have defined the following distriubtions and
+  // variables:
+  // 
+  // * count_norm -> the number of ZDC counts
+  // * gaussian_dist_ -> 
+  // * z_norm_ -> 
+  // * z_dist_ -> 
   int GenerateDefaultModel();
 
   // Uses the output of our luminosity model to generate a z-vertex profile.
@@ -117,17 +130,66 @@ class HourglassSimulation {
   // partial integration of the luminosity model.
   int GenerateZVertexProfile();
 
+  // Assumes rotation in CZ plane, but rotation proceeds the same if we look at
+  // the XZ plane or YZ plane. C = X, Y. Angle is not neccessarily the same in
+  // both planes. Updates c and z with rotated values.
+  //
+  // It seems that rotations in three dimensional space are non commutative.
+  // Which means, it matters what order we apply rotations in.
+  void RotateBlueCoordinates(double& c, double& z, double angle);
+  void RotateYellCoordinates(double& c, double& z, double angle);
+
   // given random probabiltiy and ZDC resolution, smear z-vertex 
   double SmearZVertex( double rand_prob_res, double orig_z ); 
 
-  int SaveFigures();
-  
+  // Apply Beta Squeeze + Rotation
+  void TransformBlueBeamWidth(double& beam_width, double x, double z, double angle);
+  void TransformYellBeamWidth(double& beam_width, double x, double z, double angle);
+
+ public: 
+  // Loading z-vertex distributions from WCM data. Distributions loaded to
+  // z_bunch_profile_(blue|yell)_
+  // Assumes the distribution is named as follows:
+  // std::string b_name = "bwcm_zprofile_"+run_number_+"_space";
+  // std::string y_name = "ywcm_zprofile_"+run_number_+"_space";
+  // You can add an argument to this member function to make it general, but as
+  // this is my code, and I'm trying to get results without messing around with
+  // flexibility, the names are hardcoded.
+  int LoadZProfile(const std::string& blue_f_name, const std::string& yell_f_name);
+  std::map<double,double> z_profile_blue;
+  std::map<double,double> z_profile_yell;
+ 
+ private: 
+
+  // Normalization:
+  // In any luminosity model, we assume integration over the convelution of two
+  // normalized densities. When those densities are simple, we know the
+  // normalization ahead of time, but if we transform the widths and coordinates
+  // to be multivariate distributions to add more "realism" the normalization
+  // might not maintain the same functional form. Therefore, we should calculate
+  // the normalization for each density individually, and apply it to the
+  // luminosity convelution. This normalization should be trivial to calculate
+  // numerically
+  int NormalizeDensities(); 
+  // Bunch densities in the cardinal directions of the PHENIX coordinate system
+  double DensityXBlue(double x); // input transformations as neccessary
+  double DensityYBlue(double y);
+  double DensityZBlue(double z);
+  double DensityXYell(double x); // input transformations as neccessary
+  double DensityYYell(double y);
+  double DensityZYell(double z);
+  double Norm_X;
+  double Norm_Y;
+  double Norm_Z;
+
   // Simulated z-vertex distribution
   TH1F* zdc_zvertex_sim;
   TH1F* zdc_zvertex_dat;
   TH1F* zdc_zvertex_sim_norm;
   TH1F* zdc_zvertex_dat_norm;
   TH2F* zvtx_pdf;
+  TGraph* z_bunch_profile_blue_;
+  TGraph* z_bunch_profile_yell_;
   TCanvas* zvertex_comparison_canvas;
   TCanvas* simulation_config_canvas;
   TCanvas* config_and_vertex_compare;
