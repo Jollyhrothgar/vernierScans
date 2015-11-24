@@ -72,7 +72,7 @@ class HourglassSimulation {
 
   // Performance Tracking Variables
   long long unsigned int how_many_things = 0; 
-  std::map<std::string, long long unsigned int > time_tracker;
+  std::map<int, long long unsigned int > time_tracker;
 
   // Spatial Coordinates
   std::vector<double> z_position_; 
@@ -89,11 +89,25 @@ class HourglassSimulation {
   unsigned long long cross_count;
   unsigned long long event_limit_count;
 
-  // Luminosity variables
+  // Luminosity variables, functions
+  //
+  // Find the normalization for our density, assumes un-normalized x and y
+  // distributions, and samples the normalized z-distriubtion, which is already
+  // normalized. Note that rotating the profile does not change the overall
+  // normalization.
+  void NormalizeDensity();
+
+  // Standard gaussian, sans normalization
+  double GetGaussianDensity(double x, double sigma);
+
+  // Look up the density of the z-profile, based on our loaded model.
+  double LookupZDensityBlue(double z);
+  double LookupZDensityYell(double z);
 
   // total luminosity calculated in numeric integration
   double luminosity_tot_; 
   double luminosity_normalization_;
+  double density_normalization_;
   double spacetime_volume_;
   double x_profile_norm_;
   double y_profile_norm_;
@@ -123,7 +137,10 @@ class HourglassSimulation {
   // * gaussian_dist_ -> 
   // * z_norm_ -> 
   // * z_dist_ -> 
+  int CreateCumulativePoissonDistribution();
   int GenerateDefaultModel();
+  int GenerateNewModel();
+  int GenerateAmareshModel();
 
   // Uses the output of our luminosity model to generate a z-vertex profile.
   // This is accomplished by sampling the z-t distribution created through
@@ -142,9 +159,9 @@ class HourglassSimulation {
   // given random probabiltiy and ZDC resolution, smear z-vertex 
   double SmearZVertex( double rand_prob_res, double orig_z ); 
 
-  // Apply Beta Squeeze + Rotation
-  void TransformBlueBeamWidth(double& beam_width, double x, double z, double angle);
-  void TransformYellBeamWidth(double& beam_width, double x, double z, double angle);
+  // Apply Beta Squeeze to beam_Width, return squeezed
+  // beam width
+  double BetaSqueeze(double beam_width, double z);
 
  public: 
   // Loading z-vertex distributions from WCM data. Distributions loaded to
@@ -171,16 +188,6 @@ class HourglassSimulation {
   // luminosity convelution. This normalization should be trivial to calculate
   // numerically
   int NormalizeDensities(); 
-  // Bunch densities in the cardinal directions of the PHENIX coordinate system
-  double DensityXBlue(double x); // input transformations as neccessary
-  double DensityYBlue(double y);
-  double DensityZBlue(double z);
-  double DensityXYell(double x); // input transformations as neccessary
-  double DensityYYell(double y);
-  double DensityZYell(double z);
-  double Norm_X;
-  double Norm_Y;
-  double Norm_Z;
 
   // Simulated z-vertex distribution
   TH1F* zdc_zvertex_sim;
