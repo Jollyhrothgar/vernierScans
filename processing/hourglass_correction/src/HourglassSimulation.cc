@@ -67,7 +67,7 @@ int HourglassSimulation::InitSpacetime() {
   t_high =  10.e-8; // This value is in nanoseconds already
   t_range = t_high - t_low;
   vel = 2.99792e+10; // speed of light (cm/s)
-  N_bin_t = 80; 
+  N_bin_t = 81; 
   N_bin_z = 600;
   N_bin_x = 60;
   N_bin_y = 60;
@@ -387,8 +387,8 @@ int HourglassSimulation::Run() {
   time_tracker[7] = GetTime().count();
   std::cout << "phase " << 7 << std::endl;
   //GenerateDefaultModel();
-  GenerateNewModel();
-  //GenerateAmareshModel();
+  //GenerateNewModel();
+  GenerateAmareshModel();
   time_tracker[8] = GetTime().count();
   std::cout << "phase " << 8 << std::endl;
 
@@ -639,10 +639,10 @@ int HourglassSimulation::GenerateNewModel() {
   double sum_T;
   double add_T;
   
-  TGraph* new_model_z_blue[5];
-  TGraph* new_model_z_yell[5];
+  TGraph* new_model_z_blue[3];
+  TGraph* new_model_z_yell[3];
 
-  for(int i = 0; i < 5; i++) {
+  for(int i = 0; i < 3; i++) {
     std::stringstream name_b;
     name_b << "new_model_z_blue_" << i;
     std::stringstream name_y;
@@ -661,9 +661,11 @@ int HourglassSimulation::GenerateNewModel() {
   //====================================separate t and z dist========================
   sum_T = 0.0;
   luminosity_tot_ = 0.0;
+  double interaction_time = 0.;
   double spacetime_volume = binsizeX*binsizeY*binsizeZ*1.0e-9*vel*binsizeT;
   double half_angle_xz = angle_xz/2.0;
   double cos_half_angle_xz = cos(angle_xz/2.0);
+ 
   // Calculate luminsosity 
   for(int ct=0; ct<N_bin_t; ct++) {
     double t = t_position_[ct];
@@ -677,27 +679,28 @@ int HourglassSimulation::GenerateNewModel() {
       double density_yell_z = LookupZDensityYell(z*cos_half_angle_xz+vel*t);
       // Watch the bunchs collide!
       // if(cz == 300) std::cout << "\r" <<  z-vel*t << ", " << z+vel*t << std::endl;
-      if(ct == 30){
+      if(cz == 300) {
+        if(fabs(density_blue_z*density_yell_z) > 0.) {
+          interaction_time += binsizeT;
+        }
+
+      }
+      if(ct == 35){
         new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
         new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
       }
-      if(ct == 35){
+      if(ct == 40){
         new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
         new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
       }
-      if(ct == 40){
+      if(ct == 45){
         new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
         new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
       }
-      if(ct == 45){
-        new_model_z_blue[3]->SetPoint( new_model_z_blue[3]->GetN(), z, density_blue_z);
-        new_model_z_yell[3]->SetPoint( new_model_z_yell[3]->GetN(), z, density_yell_z);
-      }
-      if(ct == 50){
-        new_model_z_blue[4]->SetPoint( new_model_z_blue[4]->GetN(), z, density_blue_z);
-        new_model_z_yell[4]->SetPoint( new_model_z_yell[4]->GetN(), z, density_yell_z);
-      }
       for(int cx=0; cx<N_bin_x; cx++) {
+        //if(ct == 40) {
+        //  std::cout << z << ", " << BetaSqueeze(sigma_x/sqrt(2.),z*cos_half_angle_xz) << std::endl;
+        //}
         double x = x_position_[cx];
         double x_blue = x*cos_half_angle_xz - xoff + half_angle_xz*z;
         double x_yell = x*cos_half_angle_xz        - half_angle_xz*z;
@@ -738,7 +741,7 @@ int HourglassSimulation::GenerateNewModel() {
   // correctly.
   std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
   std::cout << "done accumulating Gaussian distbns." << std::endl;
-
+  std::cout << "Interaction time: " << interaction_time << std::endl;
 
   return 0;
 }
