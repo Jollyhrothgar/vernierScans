@@ -40,7 +40,7 @@ class HourglassSimulation {
   bool override_save_file_;
 
   // Simulates Z-vertex profile for ZDC, given configuration loaded. 
-  int Run();  
+  int Run(int model_opt);  
 
   // Shows the simulation configuration used. Some config parameters have
   // operations applied to them immediately before use.
@@ -100,9 +100,12 @@ class HourglassSimulation {
   // Standard gaussian, sans normalization
   double GetGaussianDensity(double x, double sigma);
 
-  // Look up the density of the z-profile, based on our loaded model.
-  double LookupZDensityBlue(double z);
-  double LookupZDensityYell(double z);
+  // Looks up z value and returns the density based on the zprofile loaded.
+  // lookup value is first argument. The second argument updates z_lookup with
+  // the value which was found in the distribution, so that z_lookup and z can
+  // be compared.
+  double LookupZDensityBlue(double z,double& z_lookup);
+  double LookupZDensityYell(double z,double& z_lookup);
 
   // total luminosity calculated in numeric integration
   double luminosity_tot_; 
@@ -138,9 +141,8 @@ class HourglassSimulation {
   // * z_norm_ -> 
   // * z_dist_ -> 
   int CreateCumulativePoissonDistribution();
-  int GenerateDefaultModel();
-  int GenerateNewModel();
-  int GenerateAmareshModel();
+  void GenerateAmareshModel();
+  void GenerateNewModel();
 
   // Uses the output of our luminosity model to generate a z-vertex profile.
   // This is accomplished by sampling the z-t distribution created through
@@ -195,6 +197,7 @@ class HourglassSimulation {
   TH1F* zdc_zvertex_sim_norm;
   TH1F* zdc_zvertex_dat_norm;
   TH2F* zvtx_pdf;
+  TH1F* profile_frame_;
   TGraph* z_bunch_profile_blue_;
   TGraph* z_bunch_profile_yell_;
   TCanvas* zvertex_comparison_canvas;

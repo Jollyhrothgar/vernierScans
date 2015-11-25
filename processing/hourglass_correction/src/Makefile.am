@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 
-AM_CXXFLAGS = -Wall -Werror -std=c++0x 
+AM_CXXFLAGS = -Wall -Werror -std=c++0x # multithread: -fopenmp 
 
 BUILT_SOURCES = \
 	testexternals.C
@@ -15,7 +15,7 @@ lib_LTLIBRARIES = \
 
 # this can be replaced with a shell command which invokes and captures root-config --libs
 libVernierHourglass_la_LDFLAGS = \
-	`root-config --evelibs` -lMinuit	\
+	`root-config --evelibs` -lMinuit \
 	-L$(MYINSTALL) -lVernierAnalysis
 
 libVernierHourglass_la_SOURCES = \

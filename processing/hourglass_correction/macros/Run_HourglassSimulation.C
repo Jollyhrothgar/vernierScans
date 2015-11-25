@@ -2,6 +2,7 @@
 
 int Run_HourglassSimulation(
   const std::string& file_stub,
+	const int mode = 0,
   const std::string lib = "libVernierHourglass.so"
 ) {
   int run_index = 0;
@@ -16,7 +17,7 @@ int Run_HourglassSimulation(
     z_profile_density_blue[run_index],
     z_profile_density_yellow[run_index]
   );
-  sim.Run();
+  sim.Run(mode);
   sim.Compare(hourglass_data_file[run_index]);
   sim.SaveFigures(plots_dir);
   return 0;
