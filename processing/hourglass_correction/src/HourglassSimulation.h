@@ -29,6 +29,8 @@ class HourglassSimulation {
   // tool.
   int InitDefaultConfig();
 
+  int FinalInit();
+
   // Loads all configuration parameters from HourglassConfig-generated file, use
   // for running many simulations over smoothly varying parameters.
   int InitFromConfig(const std::string& config_file);
@@ -42,19 +44,38 @@ class HourglassSimulation {
   // Simulates Z-vertex profile for ZDC, given configuration loaded. 
   int Run(int model_opt);  
 
-  // Shows the simulation configuration used. Some config parameters have
-  // operations applied to them immediately before use.
-  int ShowConfig();
-
+  // Runs simuluations until convergence is met, final good configuration is
+  // saved. Must initialize as normal, but best config file will be saved.
+  int RunRootFinder(int model_opt, const std::string& compare_file);
   // Compare to a data distribution
   // The proper zdc distribution is extracted from the config file, the root
   // file which contains this distribution is passed as compare_file_name. The
   // simulated z-vertex is plotted on top of the real z-vertex distribution, and
   // the canvas is saved to the registry.
+
+  // Keeps track of the number of times Reset() is called
+  int number_of_iterations;
+
   int Compare(const std::string& compare_file_name);
   std::string zdc_compare_histo_name_;
+
+  // goodness of fits
+  double chi2_test;
+  double squares_residual;
   
-  // saves any figures loaded into save_restitry_ to a root file and pdf. Used
+  // Kills all dynamically allocated memory, but saves the configuration file
+  int Reset();
+
+  // Saves the currently used Configruation File to the directory of your choice
+  // config file name will be: <run_number>_h<hOffset>_v<vOffset>.conf. 
+  int SaveConfig(const std::string& config_dir);
+
+  // Shows the simulation configuration used. Some config parameters have
+  // operations applied to them immediately before use.
+  int ShowConfig();
+
+  
+  // saves any figures loaded into save_registry_ to a root file and pdf. Used
   // to capture all graphical output and store it for inspection later, no
   // formatting is performed to make the plots pretty.
   int SaveFigures( const std::string& figure_output_dir); 
@@ -136,7 +157,7 @@ class HourglassSimulation {
   // calculation, that we have defined the following distriubtions and
   // variables:
   // 
-  // * count_norm -> the number of ZDC counts
+  // * multi_coll -> the number of ZDC counts
   // * gaussian_dist_ -> 
   // * z_norm_ -> 
   // * z_dist_ -> 
@@ -206,10 +227,6 @@ class HourglassSimulation {
   TCanvas* norm_config_and_vertex_compare;
   std::vector<TObject*> save_registry_;
 
- public:
-  // goodness of fits
-  double chi2_test;
-  double squares_residual;
  private:
 
   // CONFIGURATION (These variables should not change after initialization...) )
@@ -221,7 +238,7 @@ class HourglassSimulation {
   //  Multiple collisions parameter, this is the typical number of collisions
   //  per bunch crossing. This varies with beam overlap, beam energy, beam
   //  population.
-  double rate; 
+  double multi_coll; 
   
   // Multiple collisions parameter, maximum expected number of collisions per
   // crossing is 0.5. MAX_COLL is a constant which is defined to be max_coll +

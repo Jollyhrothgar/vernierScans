@@ -15,6 +15,10 @@
 #include "TF1.h"
 #include "TMath.h"
 
+double ToCentimeters( double nanoseconds ) {
+  return nanoseconds*1.0e-9*2.998e+10;
+}
+
 int main( int argc, char** argv ) {
 
   // Give a list of WCM profiles to plot
@@ -50,7 +54,6 @@ int main( int argc, char** argv ) {
 
     // reset each time (because it leaves scope)
     std::vector<double> time_ns_;
-    std::vector<double> distance_cm_;
     std::vector<double> wcm_intensity_;
     std::vector<double> noise;
 
@@ -60,23 +63,16 @@ int main( int argc, char** argv ) {
       wcm_ss.str(data);
       double nanoseconds_;
       double intensity;
-      double distance;
 
       wcm_ss >> nanoseconds_ >> intensity;
 
-      // Transform
-      // nanoseconds_ = nanoseconds_*-1.0+105.14;
       wcm_intensity_.push_back(intensity);
       time_ns_.push_back(nanoseconds_);
-      distance_cm_.push_back(nanoseconds_*to_seconds*c_vel);
 
       if(nanoseconds_ > time_cut) {
         noise.push_back(intensity);
       }
     }
-    // Goal: create real model of WCM profile which includes the real
-    // fluctuation of the beam gas which could impact the data. Though this
-    // affect is small, it is relatively easy to implement. 
     
     // GENERATE CORRECTED WCM PROFILE, ALL POSITIVE
     std::stringstream name;
@@ -89,10 +85,16 @@ int main( int argc, char** argv ) {
       density.push_back(wcm_intensity_[entry_i] + fabs(offset));
     }
 
+    for(unsigned int noise_i = 0; noise_i < noise.size(); noise_i++) {
+      noise[noise_i] = noise[noise_i] + fabs(offset);
+    }
+
+    // Now we have our shifted intensity (called density) and our noise distribution (called noise)
+
     name.str("");
     title.str("");
     TGraph* g_wcm_norm = new TGraph(time_ns_.size(),&time_ns_[0],&density[0]);
-    name << dist_name << "_time_shifted";
+    name << dist_name << "_time_pos_values";
     title << name.str() << ";nanoseconds;density";
     g_wcm_norm->SetName(name.str().c_str());
     g_wcm_norm->SetTitle(title.str().c_str());
@@ -107,12 +109,12 @@ int main( int argc, char** argv ) {
       name.str().c_str(),
       title.str().c_str(),
       100,
-      *std::min_element(noise.begin(),noise.end())+fabs(offset),
-      *std::max_element(noise.begin(),noise.end())+fabs(offset)
+      *std::min_element(noise.begin(),noise.end()),
+      *std::max_element(noise.begin(),noise.end())
       );
 
     for(auto noise_i = noise.begin(); noise_i != noise.end(); ++noise_i) {
-      h_fluctuation->Fill(*noise_i + fabs(offset));
+      h_fluctuation->Fill(*noise_i);
     }
     h_fluctuation->Smooth(3);
     h.push_back(h_fluctuation);
@@ -124,6 +126,7 @@ int main( int argc, char** argv ) {
     // 1.c. expontential decay to 0 after main bunch edge
     auto max_entry = std::max_element(density.begin(),density.end());
 
+    // time cut == 1/3 of the domain.
     double half_time_cut = time_cut/2.0;
     auto first_time = time_ns_.begin();
     auto second_time = time_ns_.begin();
@@ -132,8 +135,8 @@ int main( int argc, char** argv ) {
     std::deque<double> density_centered;
     std::deque<double> time_centered;
     
-    density_centered.push_front(*max_entry);
-    time_centered.push_front(0.0);
+    density_centered.push_front(*max_entry); // now the maximum value of the WCM is in the middle
+    time_centered.push_front(0.0); // we set the time in the middle to be "0"
     double left_time = 0.;
     double right_time = 0.;
     left_time -= time_interval;
@@ -171,21 +174,23 @@ int main( int argc, char** argv ) {
       ++right_itr;
       left_time -= time_interval;
       right_time += time_interval;
+
       // if true, we are in tails of distribution
-      if(*left_itr < *max_entry/5.0) {
+      if(*left_itr  < *max_entry/5.0) {
         left_side->SetPoint(left_side->GetN(),left_time,*left_itr);
       } 
       if(*right_itr < *max_entry/5.0) {
         right_side->SetPoint(right_side->GetN(),right_time,*right_itr);
       } 
+      if(left_itr == density.begin()) break; // left side will hit the edge before the right side
     }
     while( left_time > (-1.0*(time_cut*3./2.)) && right_time < (time_cut*3./2.) ) {
-      density_centered.push_front(0.0 /*h_fluctuation->GetRandom()*/);
-      density_centered.push_back (0.0 /*h_fluctuation->GetRandom()*/);
+      density_centered.push_front(0.0);
+      density_centered.push_back (0.0);
       time_centered.push_front(left_time);
       time_centered.push_back(right_time);
-			left_time -= time_interval;
-			right_time += time_interval;
+      left_time -= time_interval;
+      right_time += time_interval;
     }
 
     name.str("");
@@ -198,56 +203,14 @@ int main( int argc, char** argv ) {
     auto d_i = density_centered.begin();
     auto t_i = time_centered.begin();
     while( d_i != density_centered.end() && t_i != time_centered.end() ) {
-      centered_density_->SetPoint(centered_density_->GetN(), (*t_i)*to_seconds*c_vel, fabs(*d_i));
+      centered_density_->SetPoint(centered_density_->GetN(), ToCentimeters(*t_i), fabs(*d_i));
       ++d_i;
       ++t_i;
     }
     g.push_back(centered_density_);
 
-
-    std::vector<double> z_prof;
-    std::vector<double> left_noise;
-    std::vector<double> right_noise;
-    for(unsigned int entry_i = 0; entry_i < time_ns_.size(); entry_i++ ) {
-      if(time_ns_[entry_i] < time_cut) {
-        z_prof.push_back(density[entry_i]);
-        // Get bounding distributions of random noise, sampled from the real
-        // noise of the WCM profile (hypothesis: this isn't noise, its beam gas,
-        // so instead, lets just shift the WCM profile, keeping as much data as
-        // possible. The beam is a ring anyway, so periodic boundary conditions
-        // make sense. This is kept in case cross-checking is ever desired.
-        // left_noise.push_back(h_fluctuation->GetRandom());
-        // right_noise.push_back(h_fluctuation->GetRandom());
-      } else if((time_ns_[entry_i] >= time_cut)&&(time_ns_[entry_i] < time_cut*2.0)) {
-        right_noise.push_back(density[entry_i]);
-      } else {
-        left_noise.push_back(density[entry_i]);
-      }
-    }
-
-    // Now, create the profile
-    std::vector<double> density_shifted;
-    density_shifted.insert(density_shifted.end(), left_noise.begin(), left_noise.end());
-    density_shifted.insert(density_shifted.end(), z_prof.begin(), z_prof.end());
-    density_shifted.insert(density_shifted.end(), right_noise.begin(), right_noise.end());
-
-    auto density_itr = density_shifted.begin();
-    auto time_itr = time_ns_.begin();
-    name.str("");
-    title.str("");
-    TGraph* z_bunch_prof = new TGraph();
-    name << dist_name << "_bunch_profile";
-    title << dist_name << ";Z-position (PHENIX IR);density";
-    z_bunch_prof->SetName(name.str().c_str());
-    z_bunch_prof->SetTitle(title.str().c_str());
-    while( (density_itr != density_shifted.end() ) && ( time_itr != time_ns_.end()) ) {
-      double time_shifted = *time_itr;
-      time_shifted = time_shifted - ((time_cut*3.0)/2.0); // Shift so bunch is centered at z = 0
-      z_bunch_prof->SetPoint(z_bunch_prof->GetN(), time_shifted*to_seconds*c_vel, fabs(*density_itr));
-      ++density_itr;
-      ++time_itr;
-    }
-    g.push_back(z_bunch_prof);
+    double norm = centered_density_->Integral();
+    std::cout << "Normalization: " << norm << std::endl;
 
     // Now, create the normalized profile
     // Create a textfile for alternative usage
@@ -258,41 +221,22 @@ int main( int argc, char** argv ) {
     title << dist_name << ";Z-position (PHENIX IR) cm;P.D.F. Density";
     z_prof_norm->SetName(name.str().c_str());
     z_prof_norm->SetTitle(title.str().c_str());
-    double norm = centered_density_->Integral();
+    
     auto density_c_itr = density_centered.begin();
     auto time_c_itr = time_centered.begin();
 
     name.str("");
-    name << dist_name << "_density.txt";
+    name << "./profile_densities/" << dist_name << "_density.txt";
 
     std::ofstream wcm_out(name.str().c_str()); 
     while( (density_c_itr != density_centered.end() ) && ( time_c_itr != time_centered.end()) ) {
-      double time_shifted = *time_c_itr;
-      z_prof_norm->SetPoint(z_prof_norm->GetN(), (time_shifted*to_seconds*c_vel), fabs(*density_c_itr/norm));
-      wcm_out << (time_shifted*to_seconds*c_vel) << " " << fabs(*density_c_itr/norm) << std::endl;
+      z_prof_norm->SetPoint(z_prof_norm->GetN(), ToCentimeters(*time_c_itr), fabs(*density_c_itr/norm));
+      wcm_out << ToCentimeters(*time_c_itr) << " " << fabs(*density_c_itr/norm) << std::endl;
       ++density_c_itr;
       ++time_c_itr;
     }
     wcm_out.close();
     g.push_back(z_prof_norm);
-
-    name.str("");
-    title.str("");
-    TGraph* g_wcm = new TGraph(time_ns_.size(),&time_ns_[0],&wcm_intensity_[0]);
-    name << dist_name << "_time_raw";
-    title << name.str() << ";nanoseconds;intensity";
-    g_wcm->SetName(name.str().c_str());
-    g_wcm->SetTitle(title.str().c_str());
-    g.push_back(g_wcm);
-
-    g_wcm = new TGraph(time_ns_.size(), &distance_cm_[0], &wcm_intensity_[0]);
-    name.str("");
-    title.str("");
-    name << dist_name << "_space_raw";
-    title << name.str() << ";centimeters;intensity";
-    g_wcm->SetName(name.str().c_str());
-    g_wcm->SetTitle(title.str().c_str());
-    g.push_back(g_wcm);
   } // end loop over files
 
   TFile* f = new TFile(output_file.c_str(), "RECREATE");
