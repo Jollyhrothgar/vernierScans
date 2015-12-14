@@ -104,7 +104,6 @@ class HourglassConfiguration{
   // returns true if par is found to be a parameter in config_. Designed usage
   // is for checking input when loading partial parameter lists from files.
   bool ParameterExists(const std::string& par);
- private:
   // string representation of hourglass simulation parameters
   std::map<std::string,std::string> par_;
 };

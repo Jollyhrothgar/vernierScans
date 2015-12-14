@@ -74,6 +74,21 @@ int main( int argc, char** argv ) {
       }
     }
     
+    std::string blue_string = "bwcm";
+    std::string yell_string = "ywcm";
+    double domain_flip = 1.;
+    
+
+    // Flip the yellow WCM profile
+    if(dist_name.find(blue_string) != std::string::npos ) {
+      std::cout << "Found blue distriubtion: " << dist_name << std::endl;
+    }
+    if(dist_name.find(yell_string) != std::string::npos ) {
+      std::cout << "Found yellow distribution: " << dist_name << std::endl;
+      domain_flip = 1.;
+    }
+
+
     // GENERATE CORRECTED WCM PROFILE, ALL POSITIVE
     std::stringstream name;
     std::stringstream title;
@@ -154,6 +169,8 @@ int main( int argc, char** argv ) {
     TGraph* left_side = new TGraph();
     left_side->SetName(name.str().c_str());
     left_side->SetTitle(name.str().c_str());
+    left_side->SetLineColor(kGreen-2);
+    left_side->SetLineWidth(2);
     g.push_back(left_side);
 
     name.str("");
@@ -163,6 +180,8 @@ int main( int argc, char** argv ) {
     TGraph* right_side = new TGraph();
     right_side->SetName(name.str().c_str());
     right_side->SetTitle(name.str().c_str());
+    right_side->SetLineColor(kPink-2);
+    right_side->SetLineWidth(2);
     g.push_back(right_side);
 
     while( left_time > (-1.*half_time_cut) && right_time < half_time_cut ) {
@@ -176,11 +195,11 @@ int main( int argc, char** argv ) {
       right_time += time_interval;
 
       // if true, we are in tails of distribution
-      if(*left_itr  < *max_entry/5.0) {
-        left_side->SetPoint(left_side->GetN(),left_time,*left_itr);
+      if(*left_itr  < *max_entry/8.0 && *left_itr > *max_entry/16.0 ) {
+        left_side->SetPoint(left_side->GetN(),domain_flip*ToCentimeters(left_time),*left_itr);
       } 
-      if(*right_itr < *max_entry/5.0) {
-        right_side->SetPoint(right_side->GetN(),right_time,*right_itr);
+      if(*right_itr < *max_entry/8.0 && *right_itr > *max_entry/16.0) {
+        right_side->SetPoint(right_side->GetN(),domain_flip*ToCentimeters(right_time),*right_itr);
       } 
       if(left_itr == density.begin()) break; // left side will hit the edge before the right side
     }
@@ -203,7 +222,7 @@ int main( int argc, char** argv ) {
     auto d_i = density_centered.begin();
     auto t_i = time_centered.begin();
     while( d_i != density_centered.end() && t_i != time_centered.end() ) {
-      centered_density_->SetPoint(centered_density_->GetN(), ToCentimeters(*t_i), fabs(*d_i));
+      centered_density_->SetPoint(centered_density_->GetN(), domain_flip*ToCentimeters(*t_i), fabs(*d_i));
       ++d_i;
       ++t_i;
     }
@@ -230,8 +249,8 @@ int main( int argc, char** argv ) {
 
     std::ofstream wcm_out(name.str().c_str()); 
     while( (density_c_itr != density_centered.end() ) && ( time_c_itr != time_centered.end()) ) {
-      z_prof_norm->SetPoint(z_prof_norm->GetN(), ToCentimeters(*time_c_itr), fabs(*density_c_itr/norm));
-      wcm_out << ToCentimeters(*time_c_itr) << " " << fabs(*density_c_itr/norm) << std::endl;
+      z_prof_norm->SetPoint(z_prof_norm->GetN(), domain_flip*ToCentimeters(*time_c_itr), fabs(*density_c_itr/norm));
+      wcm_out << domain_flip*ToCentimeters(*time_c_itr) << " " << fabs(*density_c_itr/norm) << std::endl;
       ++density_c_itr;
       ++time_c_itr;
     }

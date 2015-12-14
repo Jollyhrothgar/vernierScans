@@ -9,6 +9,7 @@
 #include "TGraph.h"
 #include "TCanvas.h"
 #include "TObject.h"
+#include "TPaveText.h"
 
 
 class HourglassSimulation {
@@ -23,14 +24,18 @@ class HourglassSimulation {
   // This is for emergency debugging, I wouldn't reccomend using it for anything
   // else.
   int ManualInit();
+  
+  int Init(
+    const std::string& cfg_file, 
+    const std::string& compare_file_name, 
+    const std::string& z_profile_blue, 
+    const std::string& z_profile_yell
+    );
 
   // Use HourglassConfiguration to generate and load the default configuration
   // which is done manually in InitDefault. InitDefault is kept as a debugging
   // tool.
   int InitDefaultConfig();
-
-  int FinalInit();
-
   // Loads all configuration parameters from HourglassConfig-generated file, use
   // for running many simulations over smoothly varying parameters.
   int InitFromConfig(const std::string& config_file);
@@ -44,6 +49,24 @@ class HourglassSimulation {
   // Simulates Z-vertex profile for ZDC, given configuration loaded. 
   int Run(int model_opt);  
 
+  // Track how many times we had to call "Run"
+  int how_many_runs;
+
+  // if true, every time run is called, we call "SavePlots"
+  bool save_all;
+
+  // Set the save directory for batch saving
+  std::string save_directory_;
+  int SetSaveDirectory(const std::string& save_dir = "./") { save_directory_ = save_dir; return 0; };
+
+  // Set the stub which will be prepended to all saved figures.
+  std::string save_file_stub_;
+  int SetSaveFileStub(const std::string& save_file_stub = "file") { save_file_stub_ = save_file_stub; return 0; };
+
+  // Set the flag to save everything. If this is set, each time that Run() is
+  // called, figures will be saved to a directory specified. 
+  int SetSaveAll() { save_all = true; return 0; };
+
   // Runs simuluations until convergence is met, final good configuration is
   // saved. Must initialize as normal, but best config file will be saved.
   int RunRootFinder(int model_opt, const std::string& compare_file);
@@ -56,11 +79,16 @@ class HourglassSimulation {
   // Keeps track of the number of times Reset() is called
   int number_of_iterations;
 
-  int Compare(const std::string& compare_file_name);
+  int Compare();
   std::string zdc_compare_histo_name_;
 
   // goodness of fits
+  //
+  // stores chi2/NDF between zdc_zvertex_sim and zdc_zvertex_dat
   double chi2_test;
+  
+  // stores the average squared residual between zdc_zvertex_sim and
+  // zdc_zvertex_dat. 
   double squares_residual;
   
   // Kills all dynamically allocated memory, but saves the configuration file
@@ -78,7 +106,7 @@ class HourglassSimulation {
   // saves any figures loaded into save_registry_ to a root file and pdf. Used
   // to capture all graphical output and store it for inspection later, no
   // formatting is performed to make the plots pretty.
-  int SaveFigures( const std::string& figure_output_dir); 
+  int SaveFigures();
  private:
   // Helper function to pass the configuration parameters from an
   // HourglassConfiguration object to this object. 
@@ -90,6 +118,7 @@ class HourglassSimulation {
 
   // Initialize space-time related coordinates
   int InitSpacetime();
+  bool first_init;
 
   // Performance Tracking Variables
   long long unsigned int how_many_things = 0; 
@@ -137,12 +166,6 @@ class HourglassSimulation {
   double y_profile_norm_;
   double z_profile_norm_;
   
-  // Initializes plots, must be called after InitSpacetime, which is called by
-  // either of the other init methods. I put it at the top of Run()
-  int InitPlots();
-
-  // Final initialization, once I figure out what is initialized here, I can
-  // rename to something more sensible.
   int InitProbabilityVariables();
 
   // compute factorial of integer n recursively 
@@ -162,8 +185,11 @@ class HourglassSimulation {
   // * z_norm_ -> 
   // * z_dist_ -> 
   int CreateCumulativePoissonDistribution();
+  bool amaresh_model_run;
   void GenerateAmareshModel();
+  bool new_model_run;
   void GenerateNewModel();
+  int ResetModel();
 
   // Uses the output of our luminosity model to generate a z-vertex profile.
   // This is accomplished by sampling the z-t distribution created through
@@ -196,8 +222,8 @@ class HourglassSimulation {
   // this is my code, and I'm trying to get results without messing around with
   // flexibility, the names are hardcoded.
   int LoadZProfile(const std::string& blue_f_name, const std::string& yell_f_name);
-  std::map<double,double> z_profile_blue;
-  std::map<double,double> z_profile_yell;
+  std::map<double,double> z_profile_blue_;
+  std::map<double,double> z_profile_yell_;
  
  private: 
 
@@ -213,19 +239,24 @@ class HourglassSimulation {
   int NormalizeDensities(); 
 
   // Simulated z-vertex distribution
-  TH1F* zdc_zvertex_sim;
-  TH1F* zdc_zvertex_dat;
-  TH1F* zdc_zvertex_sim_norm;
-  TH1F* zdc_zvertex_dat_norm;
-  TH2F* zvtx_pdf;
-  TH1F* profile_frame_;
-  TGraph* z_bunch_profile_blue_;
-  TGraph* z_bunch_profile_yell_;
-  TCanvas* zvertex_comparison_canvas;
-  TCanvas* simulation_config_canvas;
-  TCanvas* config_and_vertex_compare;
-  TCanvas* norm_config_and_vertex_compare;
-  std::vector<TObject*> save_registry_;
+  TPaveText* config_text; // Stores configuraiton text for plotting
+  TH1F* zdc_zvertex_sim; // recreate every time ::Generate* is called
+  TH1F* zdc_zvertex_dat; // needs to be created and filled exactly once
+  TGraph* z_bunch_profile_blue_; // needs to be created and filled exactly once
+  TGraph* z_bunch_profile_yell_; // needs to be created and filled exactly once
+  TCanvas* zvertex_comparison_canvas; // recreate every time ::Generate* is called
+  TCanvas* simulation_config_canvas; // recreate every time ::Generate* is called
+  TCanvas* config_and_vertex_compare; // recreate every time ::Generate* is called
+  TCanvas* amaresh_compare; // needs to be created and filled exactly once
+  std::vector<TObject*> save_registry_; // each object created must be put in here exactly once.
+
+  // adding everything as members to avoid memory issues.
+  TGraph* amaresh_z_blue; // needs to be created and filled exactly once
+  TGraph* amaresh_z_yell; // needs to be created and filled exactly once
+  TH1F* z_lookup_diff_blue; // needs to be created and filled exactly once
+  TH1F* z_lookup_diff_yell; // needs to be created and filled exactly once
+  TGraph* new_model_z_blue[3]; // needs to be created and filled exactly once
+  TGraph* new_model_z_yell[3]; // needs to be created and filled exactly once
 
  private:
 

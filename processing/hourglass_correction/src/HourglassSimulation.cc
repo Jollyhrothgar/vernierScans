@@ -43,10 +43,37 @@ HourglassSimulation::HourglassSimulation() {
   std::cout << "Instantiating " << this_name << std::endl;
   override_save_file_ = false;
   how_many_things = 0; 
+  amaresh_model_run = false;
+  new_model_run = false;
+  first_init = false;
+  zdc_zvertex_sim = NULL;
+  zdc_zvertex_dat = NULL;
+  z_bunch_profile_blue_ = NULL;
+  z_bunch_profile_yell_ = NULL;
+  zvertex_comparison_canvas = NULL;
+  simulation_config_canvas = NULL;
+  config_and_vertex_compare = NULL;
+  amaresh_compare = NULL;
+  amaresh_z_blue = NULL;
+  amaresh_z_yell = NULL;
+  z_lookup_diff_blue = NULL;
+  z_lookup_diff_yell = NULL;
+  new_model_z_blue[0] = NULL;
+  new_model_z_yell[0] = NULL;
+  new_model_z_blue[1] = NULL;
+  new_model_z_yell[1] = NULL;
+  new_model_z_blue[2] = NULL;
+  new_model_z_yell[2] = NULL;
+  how_many_runs = 0;
+  save_all = false;
+  save_directory_ = "./";
+  save_file_stub_ = "file";
+  number_of_iterations = 0;
+  luminosity_normalization_ = 0;
 }
 
 HourglassSimulation::~HourglassSimulation() {
-  Reset();
+ // delete stuff properly here
 }
 
 int HourglassSimulation::InitSpacetime() {
@@ -65,9 +92,9 @@ int HourglassSimulation::InitSpacetime() {
   t_range = t_high - t_low;
   vel = 2.99792e+10; // speed of light (cm/s)
   N_bin_t = 81; 
-  N_bin_z = 600;
-  N_bin_x = 60;
-  N_bin_y = 60;
+  N_bin_z = 599; // ZDC timing resolution is 100 picoseconds, so we set z-vertex resoltuion to 3 cm.
+  N_bin_x = 59;
+  N_bin_y = 59;
   binsizeZ = z_range/N_bin_z;
   binsizeX = x_range/N_bin_x;
   binsizeY = y_range/N_bin_y;
@@ -97,36 +124,17 @@ int HourglassSimulation::InitSpacetime() {
     << "Z Resolution: " << binsizeZ << std::endl
     << "T Resolution: " << binsizeT << std::endl
     << "T Res (space): " << binsizeT*vel << std::endl;
-
-
   return 0;
 }
 
 int HourglassSimulation::ShowConfig() {
   std::cout << "HOURGLASS SIMULATION CONFIGURATION" << std::endl;
-  std::cout
-    << std::setw(30) << "RUN_NUMBER" << std::setw(20) <<  run_number_ << std::endl
-    << std::setw(30) << "ZDC_COUNTS" << std::setw(20) <<  count_norm << std::endl
-    << std::setw(30) << "X_OFFSET" << std::setw(20) <<  xoff << std::endl
-    << std::setw(30) << "Y_OFFSET" << std::setw(20) <<  yoff << std::endl
-    << std::setw(30) << "HORIZONTAL_BEAM_WIDTH" << std::setw(20) << sigma_x << std::endl
-    << std::setw(30) << "VERTICAL_BEAM_WIDTH" << std::setw(20)   << sigma_y << std::endl
-    << std::setw(30) << "AVG_NUMBER_IONS_BLUE_BEAM" << std::setw(20) <<  N_blue << std::endl
-    << std::setw(30) << "AVG_NUMBER_IONS_YELLOW_BEAM" << std::setw(20) <<  N_yell << std::endl
-    << std::setw(30) << "BBC_ZDC_Z_VERTEX_OFFSET" << std::setw(20) <<  z_vtx_off << std::endl
-    << std::setw(30) << "BETA_STAR" << std::setw(20) <<  beta_star << std::endl
-    << std::setw(30) << "CROSSING_ANGLE_XZ" << std::setw(20) <<  angle_xz << std::endl
-    << std::setw(30) << "CROSSING_ANGLE_YZ" << std::setw(20) << angle_yz << std::endl
-    << std::setw(30) << "FILLED_BUNCHES" << std::setw(20) <<  n_bunch << std::endl
-    << std::setw(30) << "BUNCH_CROSSING_FREQUENCY" << std::setw(20) <<  freq << std::endl
-    << std::setw(30) << "Z_PROFILE_SCALE_VALUE" << std::setw(20) <<  scale << std::endl
-    << std::setw(30) << "MULTIPLE_COLLISION_RATE" << std::setw(20) <<  multi_coll << std::endl
-    << std::setw(30) << "MAX_COLLISIONS" << std::setw(20) <<  max_coll << std::endl
-    << std::setw(30) << "Z_BUNCH_WIDTH_LEFT_GAUSSIAN" << std::setw(20) <<  sigma_zl << std::endl
-    << std::setw(30) << "Z_BUNCH_WIDTH_RIGHT_GAUSIAN" << std::setw(20) <<  sigma_zr << std::endl
-    << std::setw(30) << "Z_BUNCH_WIDTH_CENTRAL_GAUSIAN" << std::setw(20) <<  sigma_zc << std::endl
-    << std::setw(30) << "Z_BUNCH_WIDTH_LEFT_OFFSET" << std::setw(20) <<  mu_zl  << std::endl
-    << std::setw(30) << "Z_BUNCH_WIDTH_RIGHT_OFFSET" << std::setw(20) <<  mu_zr << std::endl;
+  std::cout << std::left << std::setw(30) << "RUN_NUMBER" << std::left << std::setw(30) << run_number_ << std::endl;
+  for(auto i = config_.par_.begin(); i != config_.par_.end(); ++i) {
+    auto name = i->first;
+    auto val  = i->second;
+    std::cout << std::left << std::setw(30) <<  name << std::left << std::setw(30) << val << std::endl;
+  }
   return 0;
 }
 
@@ -146,7 +154,7 @@ int HourglassSimulation::InitConfig() {
   n_bunch     = std::stod(config_.GetPar("FILLED_BUNCHES"));
   freq        = std::stod(config_.GetPar("BUNCH_CROSSING_FREQUENCY"));
   scale       = std::stod(config_.GetPar("Z_PROFILE_SCALE_VALUE"));
-  multi_coll        = std::stod(config_.GetPar("MULTIPLE_COLLISION_RATE"));
+  multi_coll  = std::stod(config_.GetPar("MULTIPLE_COLLISION_RATE"));
   max_coll    = std::stod(config_.GetPar("MAX_COLLISIONS"));
   MAX_COLL    = max_coll + 1;
   sigma_zl    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_LEFT_GAUSSIAN")  );
@@ -165,7 +173,6 @@ int HourglassSimulation::InitConfig() {
 
 int HourglassSimulation::InitFromConfig(const std::string& config_file) {
   HourglassConfiguration config;
-
   // in case for whatever god-forsaken reason you use a config file without all
   // the config parameters...
   config.SetDefaultValues(); 
@@ -183,62 +190,7 @@ int HourglassSimulation::InitDefaultConfig() {
   return 0;
 }
 
-int HourglassSimulation::Compare(
-    const std::string& compare_file_name
-    ) {
-  TFile* data = new TFile(compare_file_name.c_str(), "READ");
-  if(!data) {
-    std::cout << compare_file_name << " could not be opened by " << this_name
-      << " for comparison." << std::endl;
-    return 1;
-  }
-  zdc_zvertex_dat = (TH1F*)data->Get(zdc_compare_histo_name_.c_str())->Clone("zdc_zvertex_data");
-  if( !zdc_zvertex_dat ) {
-    std::cout << "opened " << compare_file_name << " but couldn't find " 
-      << zdc_compare_histo_name_ << " to extract." << std::endl;
-    return 1;
-  }
-  zdc_zvertex_dat->SetLineColor(kBlue);
-  zdc_zvertex_dat->SetDirectory(0);
-  zdc_zvertex_dat_norm = (TH1F*)zdc_zvertex_dat->Clone("zdc_zvertex_data_norm");
-  zdc_zvertex_dat_norm->SetDirectory(0);
-  double data_scale = 1.0/zdc_zvertex_dat_norm->Integral();
-  zdc_zvertex_dat_norm->Scale(data_scale);
-
-  zdc_zvertex_sim_norm = (TH1F*)zdc_zvertex_sim->Clone("zdc_zvertex_sim_norm");
-  zdc_zvertex_sim_norm->SetDirectory(0);
-  double sim_scale = 1.0/zdc_zvertex_sim_norm->Integral();
-  zdc_zvertex_sim_norm->Scale(sim_scale);
-
-  std::cout << "Normalization of data: " << data_scale << ", and sim: " 
-    << sim_scale << std::endl;
-  std::cout << "Norm Difference (should be small or zero): " << data_scale - sim_scale << std::endl;
-
-  if(zvertex_comparison_canvas) {delete zvertex_comparison_canvas;};
-  zvertex_comparison_canvas = 
-    new TCanvas("zvertex_comparison_canvas",
-        "Data/Simulation Comparison",
-        800,600);
-
-  if(simulation_config_canvas) { delete simulation_config_canvas;}
-  simulation_config_canvas = 
-    new TCanvas("simulation_config_canvas",
-        "Configuration For Simulation",
-        800,600);
-  if( config_and_vertex_compare) { delete config_and_vertex_compare;} 
-  config_and_vertex_compare = 
-    new TCanvas("config_and_vertex_compare",
-        "Configuration Parameters + ZVertex",
-        1600,800);
-  config_and_vertex_compare->Divide(2,1);
-  if(norm_config_and_vertex_compare) { delete norm_config_and_vertex_compare; }
-  norm_config_and_vertex_compare = 
-    new TCanvas("norm_config_and_vertex_compare",
-        "Normalized Vertex Distribution for Simulation and Data",
-        1600,800);
-  norm_config_and_vertex_compare->Divide(2,1);
-
-  TPaveText* config_text = new TPaveText(0.1,.1,.9,.9,"br");
+int HourglassSimulation::Compare() {
   auto pars = config_.GetAllPar();
   for(auto i = pars.begin(); i != pars.end(); ++i) {
     std::string par = i->first;
@@ -249,43 +201,31 @@ int HourglassSimulation::Compare(
   config_and_vertex_compare->cd(1);
   config_text->Draw();
   config_and_vertex_compare->cd(2);
-  zdc_zvertex_dat->Draw();
-  zdc_zvertex_sim->Draw("same");
-
-  norm_config_and_vertex_compare->cd(1);
-  config_text->Draw();
-  norm_config_and_vertex_compare->cd(2);
-  zdc_zvertex_dat_norm->Draw();
-  zdc_zvertex_sim_norm->Draw("same");
+  zdc_zvertex_dat->DrawCopy();
+  zdc_zvertex_sim->DrawCopy("same");
 
   simulation_config_canvas->cd();
   config_text->Draw();
 
   zvertex_comparison_canvas->cd();
-  zdc_zvertex_dat->Draw();
-  zdc_zvertex_sim->Draw("same");
+  zdc_zvertex_dat->DrawCopy();
+  zdc_zvertex_sim->DrawCopy("same");
 
-  // Compare distributions
-
+  zvertex_comparison_canvas->Update();
+  config_and_vertex_compare->Update();
+  simulation_config_canvas->Update();
   // Get Chi2Test
-  chi2_test = zdc_zvertex_dat->Chi2Test(zdc_zvertex_sim,"UW P");
+  // WW - both histograms are weighted
+  // P  - Prints: chi2, ndf, p_value, igood
+  // CHI2/NDF - Returns Chi2/NDF instead of p_value
+  chi2_test = zdc_zvertex_dat->Chi2Test(zdc_zvertex_sim,"WW P CHI2/NDF");
 
   // Generate average residual
   double average_res = 0;
   for(int i = 0; i < zdc_zvertex_dat->GetNbinsX(); i++) {
     average_res +=  pow(zdc_zvertex_dat->GetBinContent(i) - zdc_zvertex_sim->GetBinContent(i),2.0);
   }
-  squares_residual =  average_res/(zdc_zvertex_dat->GetNbinsX());
-
-  // save canvases and plots
-  save_registry_.push_back(zdc_zvertex_dat);
-  save_registry_.push_back(zdc_zvertex_sim_norm);
-  save_registry_.push_back(zdc_zvertex_dat_norm);
-  save_registry_.push_back(zvertex_comparison_canvas);
-  save_registry_.push_back(simulation_config_canvas);
-  save_registry_.push_back(config_and_vertex_compare);
-  save_registry_.push_back(norm_config_and_vertex_compare);
-  delete data;
+  squares_residual = average_res/(zdc_zvertex_dat->GetNbinsX());
   return 0;
 }
 
@@ -313,21 +253,6 @@ int HourglassSimulation::ManualInit() {
   z_vtx_off = 9.38; // 
   beta_star = 85; // 85
   angle_xz = -0.08e-3; // wp was -0.08e-3
-  return 0;
-}
-
-int HourglassSimulation::InitPlots() {
-  if(zdc_zvertex_sim) { delete zdc_zvertex_sim; }
-  zdc_zvertex_sim = 
-    new TH1F("zdc_zvertex_sim",
-        "Z Vertex ZDC Profile Simulation;z vertex;counts",
-        100,-300,300);  // this must match the HourglassData zvtx
-  // histogram binning and range if we are 
-  // to compare.
-  zdc_zvertex_sim->SetLineColor(kRed);
-  zdc_zvertex_sim->SetLineWidth(2);
-  zdc_zvertex_sim->Sumw2();
-  save_registry_.push_back(zdc_zvertex_sim);
   return 0;
 }
 
@@ -372,162 +297,178 @@ double HourglassSimulation::SmearZVertex(double rand_prob_res, double orig_z){
   return smeared_z;
 }
 
-int HourglassSimulation::Reset() {
-  /*
-  for(auto i = save_registry_.begin(); i != save_registry_.end(); ++i){
-    if(*i){
-      std::cout << "Deleting: " << (*i)->GetName() << std::endl; 
-      delete *i;
-    }
-  }
-  how_many_things = 0;
-  */
-  return 0;
-}
-
 int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare_file) {
-  
   // these are for 200GeV Run15 pp running
   // COLLISIONS/BUNCH CROSSING:  0.435, 0.402, 0.267, 0.126, 0.027, 0.001
   // BEAM OFFSET (mm)         :  0.0  , 0.01 , 0.025, 0.040, 0.060, 0.090
   bool not_converged = true;
   Run(model_opt); // Run once to get initial values.
-  Compare(compare_file);
+  Compare();
+  SaveFigures();
 
   double prev_residual = squares_residual;
-
-  //double best_chi2 = chi2_test;
+  double prev_chi2     = chi2_test;
 
   //Define ranges - these must contain the "true values"
-  //double sigma_x_min = sigma_x-(sigma_x*0.2);
-  double sigma_x_max = sigma_x+(sigma_x*0.2);
-  double sigma_x_mid = sigma_x;
-  double sigma_x_step = (sigma_x_max - sigma_x_mid)*0.5;
-  double mc_rate_min = 0.2;
-  double mc_rate_max = 0.7;
+  double mc_rate_min = 0.0001;
+  double mc_rate_max = 0.002;
   double mc_rate_mid = (mc_rate_min+mc_rate_max)/2.0;
   double mc_rate_step = (mc_rate_max - mc_rate_mid)*0.5;
-  //double beta_min = beta_star-(beta_star*0.2);
-  double beta_max = beta_star+(beta_star*0.5);
+  double beta_max = beta_star+(beta_star*0.1);
   double beta_mid = beta_star;
   double beta_step = (beta_max - beta_mid)*0.5;
-  //double angle_min = -0.002;
-  double angle_max = 0.002;
+  double angle_max = 0.0025;
   double angle_mid = 0.0;
   double angle_step = (angle_max - angle_mid)*0.5;
 
-  std::vector<double> v_sig_x;
   std::vector<double> v_mc;
   std::vector<double> v_beta;
   std::vector<double> v_angle;
 
-  v_sig_x.push_back(sigma_x_mid - sigma_x_step);
-  v_sig_x.push_back(sigma_x_mid + sigma_x_step);
-  v_beta .push_back(beta_mid    - beta_step);
-  v_beta .push_back(beta_mid    + beta_step);
+  v_beta .push_back(beta_mid    - beta_step );
+  v_beta .push_back(beta_mid                );
+  v_beta .push_back(beta_mid    + beta_step );
   v_angle.push_back(angle_mid   - angle_step);
+  v_angle.push_back(angle_mid               );
   v_angle.push_back(angle_mid   + angle_step);
   v_mc   .push_back(mc_rate_mid - mc_rate_step);
+  v_mc   .push_back(mc_rate_mid               );
   v_mc   .push_back(mc_rate_mid + mc_rate_step);
 
-  double best_sig_x = 0.;
   double best_beta = 0.;
   double best_mc = 0.;
   double best_ang = 0.;
   double best_residual = 0.;
+  double best_chi2 = 0.;
+
+  double prev_beta  = beta_star  ;
+  double prev_mc    = multi_coll ;
+  double prev_ang   = angle_xz   ;
+
+  // double curr_sig_x = 0.;
+  double curr_beta  = 0.;
+  double curr_mc    = 0.;
+  double curr_ang   = 0.;
+
+  std::map<double,HourglassConfiguration> least_squares_map;
+  std::map<double,HourglassConfiguration> chi2_map;
+
+  least_squares_map[squares_residual] = config_;
+  chi2_map[chi2_test] = config_;
 
   number_of_iterations++;
   while(not_converged) {
     bool first_test = true;
+    for(auto b = v_beta.begin(); b != v_beta.end(); ++b) {
+      for(auto a = v_angle.begin(); a != v_angle.end(); ++a) {
+        for(auto m = v_mc.begin(); m != v_mc.end(); ++m ) {
+          // Here, we set the variables directly
+          beta_star  = *b;
+          angle_xz   = *a;
+          multi_coll = *m;
 
-    for(auto x = v_sig_x.begin(); x != v_sig_x.end(); ++x) {
-      for(auto b = v_beta.begin(); b != v_beta.end(); ++b) {
-        for(auto a = v_angle.begin(); a != v_angle.end(); ++a) {
-          for(auto m = v_mc.begin(); m != v_mc.end(); ++m ) {
-            //std::cout << *x << ", " << *y << ", " << *b << ", " << *a  << ", " << *m << std::endl;
-            sigma_x = *x;
-            beta_star = *b;
-            angle_xz = *a;
-            multi_coll = *m;
+          // Save these varialbes to the config file
+          config_.ModifyConfigParameter("BETA_STAR",std::to_string(beta_star));
+          config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(angle_xz));
+          config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",std::to_string(multi_coll));
 
-            config_.ModifyConfigParameter("HORIZONTAL_BEAM_WIDTH",std::to_string(sigma_x));
-            config_.ModifyConfigParameter("BETA_STAR",std::to_string(beta_star));
-            config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(angle_xz));
-            config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",std::to_string(multi_coll));
-
-            Run(model_opt);
-            Compare(compare_file);
-            if(first_test) { 
-              best_sig_x = sigma_x;
-              best_beta = beta_star;
-              best_mc = multi_coll;
-              best_ang = angle_xz;
+          // Run a new model after setting the member variables
+          ResetModel();
+          Run(model_opt);
+          Compare();
+          if(save_all) {
+            SaveFigures();
+          }
+          if(first_test) { 
+            best_beta = beta_star;
+            best_mc = multi_coll;
+            best_ang = angle_xz;
+            best_residual = squares_residual;
+            best_chi2 = chi2_test;
+            first_test = false;
+          } else {
+            if(chi2_test < best_chi2) {
+              best_beta     = beta_star;
+              best_mc       = multi_coll;
+              best_ang      = angle_xz;
               best_residual = squares_residual;
-              first_test = false;
-            } else {
-              if(squares_residual < best_residual) {
-                best_sig_x = sigma_x;
-                best_beta = beta_star;
-                best_mc = multi_coll;
-                best_ang = angle_xz;
-                best_residual = squares_residual;
-              }
+              best_chi2     = chi2_test;
             }
           }
-        }
-      }
-    }
-    sigma_x_step = 0.5*sigma_x_step;
+        }//multi_coll loop
+      }//xing angle loop
+    }//beta star loop
     beta_step = 0.5*beta_step;
     angle_step = 0.5*angle_step;
     mc_rate_step = 0.5*mc_rate_step;
-    v_sig_x.clear();
     v_beta .clear();
     v_angle.clear();
     v_mc   .clear();
-    
+
     // Redefine the search area
-    v_sig_x.push_back(best_sig_x - sigma_x_step);
-    v_sig_x.push_back(best_sig_x + sigma_x_step);
     v_beta .push_back(best_beta  - beta_step);
+    v_beta .push_back(best_beta);
     v_beta .push_back(best_beta  + beta_step);
     v_angle.push_back(best_ang   - angle_step);
+    v_angle.push_back(best_ang);
     v_angle.push_back(best_ang   + angle_step);
     v_mc   .push_back(best_mc    - mc_rate_step);
+    v_mc   .push_back(best_mc);
     v_mc   .push_back(best_mc    + mc_rate_step);
 
-    double convergence = fabs(best_residual-prev_residual);
-    std::cout << "Iteration: " << number_of_iterations << ", Convergence: " << convergence << std::endl;
-    if(fabs(convergence) < 0.01) { 
+    std::string save_file_stub_orig = save_file_stub_;
+    save_file_stub_ = save_file_stub_ + "_iteration_" + std::to_string(number_of_iterations);
+    SaveFigures();
+    save_file_stub_ = save_file_stub_orig;
+
+    // Convergence Testing 
+    curr_beta  = beta_star  ;
+    curr_mc    = multi_coll ;
+    curr_ang   = angle_xz   ;
+
+    double beta_diff  = fabs(curr_beta  - prev_beta )/curr_beta ;
+    double mc_diff    = fabs(curr_mc    - prev_mc   )/curr_mc   ;
+    double ang_diff   = fabs(curr_ang   - prev_ang  )/curr_ang  ;
+
+    prev_beta  = curr_beta  ;
+    prev_mc    = curr_mc    ;
+    prev_ang   = curr_ang   ;
+
+    std::cout << "beta_diff : " << beta_diff     << std::endl;
+    std::cout << "mc_diff   : " << mc_diff       << std::endl;
+    std::cout << "ang_diff  : " << ang_diff      << std::endl;
+    std::cout << "Chi2      : " << chi2_test     << std::endl;
+    std::cout << "residual  : " << best_residual << std::endl;
+
+    double convergence_res  = fabs(best_residual - prev_residual );
+    double convergence_chi2 = fabs(best_chi2     - prev_chi2     );
+    std::cout << "Iteration: " << number_of_iterations 
+      << ", Chi2 Convergence: " << convergence_chi2 
+      << ", Residual Convergence: " << convergence_res << std::endl;
+    std::cout << "Convergence Variables: chi2_test: " << chi2_test << ", squares_residual: " << squares_residual << std::endl;
+    std::cout << "Search Varibles (beta_star, angle_xz, multi_coll): " << beta_star << ", " << angle_xz << ", " << multi_coll << std::endl;
+    if(fabs(convergence_chi2) < 0.01) { 
       not_converged = false;
     } else { 
       prev_residual = best_residual;
+      prev_chi2 = best_chi2;
     }
     number_of_iterations++;
-  }
+  }// while loop
   std::cout << "Best Parameters: " << std::endl
-    << "best_sig_x    : " << best_sig_x    << std::endl
     << "best_beta     : " << best_beta     << std::endl
     << "best_mc       : " << best_mc       << std::endl
     << "best_ang      : " << best_ang      << std::endl
-    << "best_residual : " << best_residual << std::endl;
+    << "best_residual : " << best_residual << std::endl
+    << "best_chi2     : " << best_chi2     << std::endl;
   return 0;
 }
 
-int HourglassSimulation::FinalInit() {
-  InitSpacetime();
-  InitPlots();
-  InitProbabilityVariables();
-  ShowConfig();
-  NormalizeDensity(); // now have density_normalization_
-  CreateCumulativePoissonDistribution();
-  return 0;
-}
 
 int HourglassSimulation::Run(int model_opt = 0) {
-  FinalInit();
   time_tracker[0] = GetTime().count();
   std::cout << "phase " << 0 << std::endl;
+  ShowConfig();
   switch(model_opt) {
     case 0:
       GenerateNewModel();
@@ -560,47 +501,24 @@ int HourglassSimulation::Run(int model_opt = 0) {
     ++second_itr;
   }
   std::cout << "In the modeling loop, we performed: " << how_many_things << " iterations." << std::endl;
+  how_many_runs++;
   return 0;
 }
 
 int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name) {
   std::ifstream z_bunch_profile_blue(blue_f_name.c_str());
   std::ifstream z_bunch_profile_yell(yell_f_name.c_str());
-  z_bunch_profile_blue_ = new TGraph();
-  z_bunch_profile_yell_ = new TGraph();
-  z_bunch_profile_blue_->SetName("blue_z_bunch_profile");
-  z_bunch_profile_yell_->SetName("yell_z_bunch_profile");
-  z_bunch_profile_blue_->SetLineWidth(2);
-  z_bunch_profile_yell_->SetLineWidth(2);
-  z_bunch_profile_blue_->SetLineColor(kBlue+2);
-  z_bunch_profile_yell_->SetLineColor(kOrange+2);
-
-  if(!z_bunch_profile_blue) {
-    std::cerr << "There was a problem loading the blue bunch profile, your code is gonna crash." << std::endl;
-    std::cerr << "Here is some diagnostic information: " << std::endl;
-    std::cerr << "ZProfile file : " << blue_f_name << std::endl;
-    std::cerr << "Check that you have the right file name and profile name and try again." << std::endl;
-    return 1;
-  }
-  if(!z_bunch_profile_yell) {
-    std::cerr << "There was a problem loading the yellow bunch profile, your code is gonna crash." << std::endl;
-    std::cerr << "Here is some diagnostic information: " << std::endl;
-    std::cerr << "ZProfile file : " << yell_f_name << std::endl;
-    std::cerr << "Check that you have the right file name and profile name and try again." << std::endl;
-    return 1;
-  }
-
   double z_pos = 0;
   double density = 0;
 
   while(z_bunch_profile_blue >> z_pos >> density) {
-    z_profile_blue[z_pos] = density;
+    z_profile_blue_[z_pos] = density;
     z_bunch_profile_blue_->SetPoint(z_bunch_profile_blue_->GetN(), z_pos, density);
   }
   z_pos = 0;
   density = 0;
   while(z_bunch_profile_yell >> z_pos >> density) {
-    z_profile_yell[z_pos] = density;
+    z_profile_yell_[z_pos] = density;
     z_bunch_profile_yell_->SetPoint(z_bunch_profile_yell_->GetN(), z_pos, density);
   }
   save_registry_.push_back(z_bunch_profile_blue_);
@@ -657,13 +575,13 @@ double HourglassSimulation::GetGaussianDensity(double x, double sigma){
 // Assumes that we have our wcm density binned at a resolution of
 // 1.5 cm
 double HourglassSimulation::LookupZDensityBlue(double z, double& found_z) {
-  auto first_element = z_profile_blue.begin();
-  auto last_element  = z_profile_blue.end();
+  auto first_element = z_profile_blue_.begin();
+  auto last_element  = z_profile_blue_.end();
   --last_element; 
   if( z < first_element->first || z > last_element->first) {
     return 0.;
   }
-  auto found = z_profile_blue.lower_bound(z);
+  auto found = z_profile_blue_.lower_bound(z);
   if(found == last_element && fabs(found->first - z) > 3.) { 
     std::cout << "Lookup failed, there is no density to use!" << std::endl
       << "Lookup Z: " << z << std::endl;
@@ -673,13 +591,13 @@ double HourglassSimulation::LookupZDensityBlue(double z, double& found_z) {
 }
 
 double HourglassSimulation::LookupZDensityYell(double z, double& found_z) {
-  auto first_element = z_profile_yell.begin();
-  auto last_element  = z_profile_yell.end();
+  auto first_element = z_profile_yell_.begin();
+  auto last_element  = z_profile_yell_.end();
   --last_element; 
   if( z < first_element->first || z > last_element->first) {
     return 0.;
   }
-  auto found = z_profile_yell.lower_bound(z);
+  auto found = z_profile_yell_.lower_bound(z);
   if(found == last_element && fabs(found->first - z) > 3.) { 
     std::cout << "Lookup failed, there is no density to use!" << std::endl
       << "Lookup Z: " << z << std::endl;
@@ -721,26 +639,21 @@ void HourglassSimulation::GenerateAmareshModel() {
   double cos_half_angle_xz = cos(angle_xz/2.0);
   double spacetime_volume = binsizeX*binsizeY*binsizeZ*vel*binsizeT;
 
-  TGraph* amaresh_z_blue = new TGraph();
-  amaresh_z_blue->SetName("amaresh_z_blue");
-  amaresh_z_blue->SetTitle("amaresh_z_blue");
-  TGraph* amaresh_z_yell = new TGraph();
-  amaresh_z_yell->SetName("amaresh_z_yell");
-  amaresh_z_yell->SetTitle("amaresh_z_yell");
-  save_registry_.push_back(amaresh_z_blue);
-  save_registry_.push_back(amaresh_z_yell);
-
   sum_T = 0.0;
   luminosity_tot_ = 0.0;
 
+  // Calculate Luminosity
   for(int ct=0; ct<N_bin_t; ct++) {
     double t = t_position_[ct];
     add_T = 0.0;
     z_norm_[ct] = 0.0;
     for(int cz=0; cz<N_bin_z; cz++) {
       double z = z_position_[cz];
-      double sigma_xz = sigma_xstar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));//corrected for angle_xz dependence, 2015
-      double sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));//corrected for angle_xz dependence, 2015
+      //corrected for angle_xz dependence, 2015
+      double sigma_xz = sigma_xstar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));
+
+      //corrected for angle_xz dependence, 2015
+      double sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));
 
       // Z-profile density for first bunch
       double density_z1l = 
@@ -767,9 +680,11 @@ void HourglassSimulation::GenerateAmareshModel() {
       double density_z1 = density_z1l + density_z1c + density_z1r;
       double density_z2 = density_z2l + density_z2c + density_z2r;
 
-      if(ct == 40){ // set for t == 0
-        amaresh_z_blue->SetPoint( amaresh_z_blue->GetN(), z, density_z1);
-        amaresh_z_yell->SetPoint( amaresh_z_yell->GetN(), z, density_z2);
+      if( ! amaresh_model_run ){
+        if(ct == 40){ // set for t == 0
+          amaresh_z_blue->SetPoint( amaresh_z_blue->GetN(), z, density_z1);
+          amaresh_z_yell->SetPoint( amaresh_z_yell->GetN(), z, density_z2);
+        }
       }
       
       luminosity_normalization_ = ((n_bunch*freq*N_blue*N_yell)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
@@ -807,67 +722,39 @@ void HourglassSimulation::GenerateAmareshModel() {
   std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
   std::cout << "done accumulating Gaussian distbns." << std::endl;
 
-  TCanvas* c = new TCanvas("amaresh_compare","Comparing Real WCM Dist to Model",800,1200);
-  c->Divide(1,2);
-  c->cd(1);
-  amaresh_z_blue->SetLineWidth(2);
-  amaresh_z_yell->SetLineWidth(2);
-  amaresh_z_blue->SetLineColor(kBlue+2);
-  amaresh_z_yell->SetLineColor(kOrange+2);
-  amaresh_z_blue->Draw("AL");
-  amaresh_z_yell->Draw("L");
-  c->cd(2);
-  z_bunch_profile_blue_->Draw("AL");
-  z_bunch_profile_yell_->Draw("L");
-  z_bunch_profile_blue_->GetXaxis()->SetRangeUser(-300.,300.);
-  c->Update();
-  save_registry_.push_back(c);
+  if( !amaresh_model_run) {
+    amaresh_compare = new TCanvas("amaresh_compare","Comparing Real WCM Dist to Model",800,1200);
+    amaresh_compare->Divide(1,2);
+    amaresh_compare->cd(1);
+    amaresh_z_blue->SetLineWidth(2);
+    amaresh_z_yell->SetLineWidth(2);
+    amaresh_z_blue->SetLineColor(kBlue+2);
+    amaresh_z_yell->SetLineColor(kOrange+2);
+    amaresh_z_blue->Draw("AL");
+    amaresh_z_yell->Draw("L");
+    amaresh_compare->cd(2);
+    z_bunch_profile_blue_->Draw("AL");
+    z_bunch_profile_yell_->Draw("L");
+    z_bunch_profile_blue_->GetXaxis()->SetRangeUser(-300.,300.);
+    amaresh_compare->Update();
+    save_registry_.push_back(amaresh_compare);
+  }
+  amaresh_model_run = true;
 }
 
 void HourglassSimulation::GenerateNewModel() {
   std::cout << "Using WCM Data model" << std::endl;
   double sum_T;
   double add_T;
-
-  // TGraph* new_model_z_blue[3];
-  // TGraph* new_model_z_yell[3];
-  // TH1F* z_lookup_diff_blue = new TH1F("z_lookup_diff_blue",
-  //   "Distribution of Differences between Lookup Value and Real Value in Z-Profile (Blue)",
-  //   100,0,1.6);
-  // TH1F* z_lookup_diff_yell = new TH1F("z_lookup_diff_yell",
-  //   "Distribution of Differences between Lookup Value and Real Value in Z-Profile (Yellow)",
-  //   100,0,1.6);
-  //
-  // save_registry_.push_back(z_lookup_diff_blue);
-  // save_registry_.push_back(z_lookup_diff_yell);
-
-  // for(int i = 0; i < 3; i++) {
-  //   std::stringstream name_b;
-  //   name_b << "new_model_z_blue_" << i;
-  //   std::stringstream name_y;
-  //   name_y << "new_model_z_yell_" << i;
-  //   new_model_z_blue[i] = new TGraph();
-  //   new_model_z_blue[i] ->SetName (name_b.str().c_str());
-  //   new_model_z_blue[i] ->SetTitle(name_b.str().c_str());
-  //   new_model_z_blue[i] ->SetLineWidth(2.);
-  //   new_model_z_blue[i] ->SetLineColor(kBlue);
-  //   new_model_z_yell[i] = new TGraph();
-  //   new_model_z_yell[i] ->SetName (name_y.str().c_str());
-  //   new_model_z_yell[i] ->SetTitle(name_y.str().c_str());
-  //   new_model_z_yell[i] ->SetLineWidth(2.);
-  //   new_model_z_yell[i] ->SetLineColor(kOrange+2);
-  //   save_registry_.push_back(new_model_z_blue[i]);
-  //   save_registry_.push_back(new_model_z_yell[i]);
-  // }
-
-
-  //====================================separate t and z dist========================
-  sum_T = 0.0;
-  luminosity_tot_ = 0.0;
   double interaction_time = 0.;
-  double spacetime_volume = binsizeX*binsizeY*binsizeZ*1.0e-9*vel*binsizeT;
   double half_angle_xz = angle_xz/2.0;
   double cos_half_angle_xz = cos(angle_xz/2.0);
+  double spacetime_volume = binsizeX*binsizeY*binsizeZ*1.0e-9*vel*binsizeT;
+
+  sum_T = 0.0;
+  luminosity_tot_ = 0.0;
+          
+  std::cout << "LUMINOSITY_NORMALIZATION: " << luminosity_normalization_ << std::endl;
 
   // Calculate luminsosity 
   for(int ct=0; ct<N_bin_t; ct++) {
@@ -884,12 +771,14 @@ void HourglassSimulation::GenerateNewModel() {
       double z_yell = z*cos_half_angle_xz+vel*t;
       double density_blue_z = LookupZDensityBlue(z_blue, lookup_z_blue);
       double density_yell_z = LookupZDensityYell(z_yell, lookup_z_yell);
-      //    if( lookup_z_blue > -9e9 ) {
-      //      z_lookup_diff_blue->Fill(fabs(z_blue-lookup_z_blue));
-      //    }
-      //    if( lookup_z_yell > -9e9) {
-      //      z_lookup_diff_yell->Fill(fabs(z_yell-lookup_z_yell));
-      //    }
+      if(!new_model_run) {
+        if( lookup_z_blue > -9e9 ) {
+          z_lookup_diff_blue->Fill(fabs(z_blue-lookup_z_blue));
+        }
+        if( lookup_z_yell > -9e9) {
+          z_lookup_diff_yell->Fill(fabs(z_yell-lookup_z_yell));
+        }
+      }
 
       // Watch the bunchs collide!
       // if(cz == 300) std::cout << "\r" <<  z-vel*t << ", " << z+vel*t << std::endl;
@@ -898,23 +787,21 @@ void HourglassSimulation::GenerateNewModel() {
       //         interaction_time += binsizeT;
       //       }
 
-      //   }
-      //   if(ct == 35){
-      //     new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
-      //     new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
-      //   }
-      //   if(ct == 40){
-      //     new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
-      //     new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
-      //   }
-      //   if(ct == 45){
-      //     new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
-      //     new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
-      //   }
+      if(!new_model_run) {
+        if(ct == 35){
+          new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
+          new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
+        }
+        if(ct == 40){
+          new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
+          new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
+        }
+        if(ct == 45){
+          new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
+          new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
+        }
+      }
       for(int cx=0; cx<N_bin_x; cx++) {
-        //if(ct == 40) {
-        //  std::cout << z << ", " << BetaSqueeze(sigma_x/sqrt(2.),z*cos_half_angle_xz) << std::endl;
-        //}
         double x = x_position_[cx];
         double x_blue = x*cos_half_angle_xz - xoff + half_angle_xz*z;
         double x_yell = x*cos_half_angle_xz        - half_angle_xz*z;
@@ -928,6 +815,7 @@ void HourglassSimulation::GenerateNewModel() {
           double density_blue_y = GetGaussianDensity(y_blue,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
           double density_yell_y = GetGaussianDensity(y_yell,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
 
+          if(fabs(luminosity_normalization_) < 0.1) {std::cout << "LUMINOSITY IS NOT PROPERLY NORMALIZED!!" << std::endl;}
           double d_luminosity_ = ( 
               luminosity_normalization_
               *spacetime_volume
@@ -956,6 +844,7 @@ void HourglassSimulation::GenerateNewModel() {
   std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
   std::cout << "done accumulating Gaussian distbns." << std::endl;
   std::cout << "Interaction time: " << interaction_time << std::endl;
+  new_model_run = true;
 }
 
 int HourglassSimulation::GenerateZVertexProfile() {
@@ -973,7 +862,6 @@ int HourglassSimulation::GenerateZVertexProfile() {
   double zpos = -999; // default initialization
   double smeared_zpos;
   double ztime;
-
   //====================running over a no. of bunch crossings==================================
   cross_count = 0;
   event_limit_count = 0;
@@ -1073,7 +961,136 @@ int HourglassSimulation::GenerateZVertexProfile() {
   return 0;
 }
 
+int HourglassSimulation::Init(
+    const std::string& cfg_file, 
+    const std::string& compare_file_name, 
+    const std::string& z_profile_blue, 
+    const std::string& z_profile_yell
+) {
+  InitFromConfig(cfg_file);
+  InitSpacetime();
+  InitProbabilityVariables();
+  CreateCumulativePoissonDistribution();
+  
+  zdc_zvertex_sim = 
+    new TH1F("zdc_zvertex_sim",
+        "Z Vertex ZDC Profile Simulation;z vertex;counts",
+        100,-300,300);  // this must match the HourglassData zvtx
+  zdc_zvertex_sim->SetDirectory(0);
+  // histogram binning and range if we are 
+  // to compare.
+  zdc_zvertex_sim->SetLineColor(kRed);
+  zdc_zvertex_sim->SetLineWidth(2);
+  zdc_zvertex_sim->Sumw2();
+  save_registry_.push_back(zdc_zvertex_sim);;
+  z_lookup_diff_blue = new TH1F("z_lookup_diff_blue",
+      "Distribution of Differences between Lookup Value and Real Value in Z-Profile (Blue)",
+      100,0,1.6);
+  z_lookup_diff_blue->SetDirectory(0);
+  z_lookup_diff_yell = new TH1F("z_lookup_diff_yell",
+      "Distribution of Differences between Lookup Value and Real Value in Z-Profile (Yellow)",
+      100,0,1.6);
+  z_lookup_diff_yell->SetDirectory(0);
+  save_registry_.push_back(z_lookup_diff_blue);
+  save_registry_.push_back(z_lookup_diff_yell);
+
+  TFile* data = new TFile(compare_file_name.c_str(), "READ");
+  if(!data) {
+    std::cout << compare_file_name << " could not be opened by " << this_name
+      << " for comparison." << std::endl;
+    return 1;
+  }
+  zdc_zvertex_dat = (TH1F*)data->Get(zdc_compare_histo_name_.c_str())->Clone("zdc_zvertex_data");
+  zdc_zvertex_dat->SetDirectory(0);
+  zdc_zvertex_dat->SetName("zdc_zvertex_dat");
+  if( !zdc_zvertex_dat ) {
+    std::cout << "opened " << compare_file_name << " but couldn't find " 
+      << zdc_compare_histo_name_ << " to extract." << std::endl;
+    return 1;
+  }
+  zdc_zvertex_dat->SetLineColor(kBlue);
+  zdc_zvertex_dat->SetDirectory(0);
+  save_registry_.push_back(zdc_zvertex_dat);
+  zvertex_comparison_canvas = 
+    new TCanvas("zvertex_comparison_canvas",
+        "Data/Simulation Comparison",
+        800,600);
+  simulation_config_canvas = 
+    new TCanvas("simulation_config_canvas",
+        "Configuration For Simulation",
+        800,600);
+  config_and_vertex_compare =
+    new TCanvas("config_and_vertex_compare",
+        "Configuration Parameters + ZVertex",
+        1600,800);
+  config_and_vertex_compare->Divide(2,1);
+  save_registry_.push_back(zvertex_comparison_canvas);
+  save_registry_.push_back(simulation_config_canvas);
+  save_registry_.push_back(config_and_vertex_compare);
+  z_bunch_profile_blue_ = new TGraph();
+  z_bunch_profile_yell_ = new TGraph();
+  z_bunch_profile_blue_->SetName("blue_z_bunch_profile");
+  z_bunch_profile_yell_->SetName("yell_z_bunch_profile");
+  z_bunch_profile_blue_->SetLineWidth(2);
+  z_bunch_profile_yell_->SetLineWidth(2);
+  z_bunch_profile_blue_->SetLineColor(kBlue+2);
+  z_bunch_profile_yell_->SetLineColor(kOrange+2);
+  amaresh_z_blue = new TGraph();
+  amaresh_z_blue->SetName("amaresh_z_blue");
+  amaresh_z_blue->SetTitle("amaresh_z_blue");
+  amaresh_z_yell = new TGraph();
+  amaresh_z_yell->SetName("amaresh_z_yell");
+  amaresh_z_yell->SetTitle("amaresh_z_yell");
+  save_registry_.push_back(amaresh_z_blue);
+  save_registry_.push_back(amaresh_z_yell);
+  for(int i = 0; i < 3; i++) {
+    std::stringstream name_b;
+    name_b << "new_model_z_blue_" << i;
+    std::stringstream name_y;
+    name_y << "new_model_z_yell_" << i;
+    new_model_z_blue[i] = new TGraph();
+    new_model_z_blue[i] ->SetName (name_b.str().c_str());
+    new_model_z_blue[i] ->SetTitle(name_b.str().c_str());
+    new_model_z_blue[i] ->SetLineWidth(2.);
+    new_model_z_blue[i] ->SetLineColor(kBlue);
+    new_model_z_yell[i] = new TGraph();
+    new_model_z_yell[i] ->SetName (name_y.str().c_str());
+    new_model_z_yell[i] ->SetTitle(name_y.str().c_str());
+    new_model_z_yell[i] ->SetLineWidth(2.);
+    new_model_z_yell[i] ->SetLineColor(kOrange+2);
+    save_registry_.push_back(new_model_z_blue[i]);
+    save_registry_.push_back(new_model_z_yell[i]);
+  }
+  config_text = new TPaveText(0.1,.1,.9,.9,"br");
+  save_registry_.push_back(config_text);
+
+  std::cout << "Done creating plots." << std::endl;
+  LoadZProfile(z_profile_blue, z_profile_yell);
+  NormalizeDensity();
+  CreateCumulativePoissonDistribution();
+  first_init = true;
+  delete data;
+  return 0;
+}
+
+int HourglassSimulation::ResetModel() {
+  InitProbabilityVariables();
+  CreateCumulativePoissonDistribution();
+  zdc_zvertex_sim->Reset();
+  zdc_zvertex_sim->SetDirectory(0);
+  zdc_zvertex_dat->SetDirectory(0);
+  zdc_zvertex_dat->SetName("zdc_zvertex_dat");
+  zdc_zvertex_sim->SetName("zdc_zvertex_sim");
+  zvertex_comparison_canvas->Clear("D");
+  simulation_config_canvas->Clear("D");
+  config_and_vertex_compare->Clear("D");
+  config_text->Clear("D");
+  return 0;
+}
+
 int HourglassSimulation::InitProbabilityVariables() {
+  poisson_dist_.clear();
+  gaussian_dist_.clear();
   poisson_dist_.resize(MAX_COLL,0.);
   gaussian_dist_.resize(N_bin_t);
   t_dist_.resize(N_bin_t,0.);
@@ -1083,53 +1100,63 @@ int HourglassSimulation::InitProbabilityVariables() {
     (*i).resize(N_bin_z,0.);
   }
   luminosity_tot_ = 0.;
-  luminosity_normalization_ = 0.;
+
+  std::cout << "Probability density values initialized!" << std::endl;
   return 0;
 }
 
-int HourglassSimulation::OverrideSaveFile( const std::string& save_file) {
-  override_save_file_name_ = save_file;
-  override_save_file_ = true;
-  return 0;
-}
-
-int HourglassSimulation::SaveFigures( const std::string& figure_output_dir = "./") {
+int HourglassSimulation::SaveFigures() {
   gErrorIgnoreLevel = kWarning;
-  std::stringstream tfile_name;
-  std::stringstream name;
+  std::stringstream root_out_name;
+  std::stringstream config_out_name;
+  std::stringstream pdf_out_name;
 
-  tfile_name << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle_xz << "_HourglassSimulation.root"; 
-  name       << figure_output_dir << "/" << run_number_ << "_" << "h" << xoff << "_v" << yoff << "_beta" << beta_star << "_xing" << angle_xz << "_HourglassSimulation.pdf";
 
-  if(override_save_file_) {
-    tfile_name.str("");
-    tfile_name << override_save_file_name_ << ".root";
-    name.str("");
-    name << override_save_file_name_ << ".pdf";
+  if(save_all) {
+    root_out_name   << save_directory_ << "/" << save_file_stub_ <<  "_runs_" << how_many_runs << ".root";
+    pdf_out_name    << save_directory_ << "/" << save_file_stub_ <<  "_runs_" << how_many_runs << ".pdf";
+    config_out_name << save_directory_ << "/" << save_file_stub_ <<  "_runs_" << how_many_runs << "_final.conf";
+  } else {
+    root_out_name   << save_directory_ << "/" << save_file_stub_ << ".root";
+    pdf_out_name    << save_directory_ << "/" << save_file_stub_ << ".pdf";
+    config_out_name << save_directory_ << "/" << save_file_stub_ << "_final.conf";
   }
-  std::string out_file_name = name.str() + "[";
+
+  std::string out_file_name = pdf_out_name.str() + "[";
   TCanvas* booklet = new TCanvas("booklet","BBC Efficiency Plots");
-  TFile* root_out = new TFile(tfile_name.str().c_str(), "RECREATE");
+  TFile* root_out = new TFile(root_out_name.str().c_str(), "RECREATE");
   booklet->Print(out_file_name.c_str());
+  std::string TH1F_type = "TH1F";
+  std::cout << "Saving figures to: " << save_directory_ << "/" << save_file_stub_ << "*" << std::endl;
   for(auto plot_i = save_registry_.begin(); plot_i != save_registry_.end(); ++plot_i) {
     auto draw_obj = *plot_i;
     if(!draw_obj) continue;
-    std::cout << "Saving/Drawing: " << draw_obj->GetName() << std::endl;
     root_out->cd();
     draw_obj->Write();
     if(!draw_obj) continue;
     TCanvas* c = new TCanvas();
     c->cd();
-    draw_obj->Draw();
-    c->Print(name.str().c_str());
+    if(TH1F_type.compare(draw_obj->ClassName()) == 0){
+      ((TH1F*)draw_obj)->DrawCopy();
+    } else {
+      draw_obj->Draw();
+    }
+    c->Print(pdf_out_name.str().c_str());
     delete c;
   }
-  out_file_name = name.str() + "]";
+  out_file_name = pdf_out_name.str() + "]";
   booklet->Print(out_file_name.c_str());
   root_out->Write();
   root_out->Close();
   if(root_out) delete root_out;
   delete booklet;
   gErrorIgnoreLevel = kInfo;
+
+  std::ofstream config_out(config_out_name.str().c_str());
+  for(auto i = config_.par_.begin(); i != config_.par_.end(); ++i) {
+    auto conf_name = i->first;
+    auto conf_val  = i->second;
+    config_out << conf_name << " " << conf_val << std::endl;
+  }
   return 0;
 }
