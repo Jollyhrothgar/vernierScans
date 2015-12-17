@@ -45,6 +45,8 @@ HourglassSimulation::HourglassSimulation() {
   how_many_things = 0; 
   amaresh_model_run = false;
   new_model_run = false;
+  new_fit_model_run = false;
+  simple_gaus_model_run = false;
   first_init = false;
   zdc_zvertex_sim = NULL;
   zdc_zvertex_dat = NULL;
@@ -310,8 +312,8 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   double prev_chi2     = chi2_test;
 
   //Define ranges - these must contain the "true values"
-  double mc_rate_min = 0.0001;
-  double mc_rate_max = 0.002;
+  double mc_rate_min = 0.4;
+  double mc_rate_max = 0.5;
   double mc_rate_mid = (mc_rate_min+mc_rate_max)/2.0;
   double mc_rate_step = (mc_rate_max - mc_rate_mid)*0.5;
   double beta_max = beta_star+(beta_star*0.1);
@@ -387,7 +389,7 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
             best_chi2 = chi2_test;
             first_test = false;
           } else {
-            if(chi2_test < best_chi2) {
+            if(squares_residual < best_residual) {
               best_beta     = beta_star;
               best_mc       = multi_coll;
               best_ang      = angle_xz;
@@ -417,9 +419,12 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     v_mc   .push_back(best_mc    + mc_rate_step);
 
     std::string save_file_stub_orig = save_file_stub_;
-    save_file_stub_ = save_file_stub_ + "_iteration_" + std::to_string(number_of_iterations);
+    std::stringstream ss;
+    ss <<  save_file_stub_ << "_iteration_" <<  std::setfill('0') << std::setw(3) << std::to_string(number_of_iterations);
+    save_file_stub_ = ss.str();
     SaveFigures();
     save_file_stub_ = save_file_stub_orig;
+    ss.str("");
 
     // Convergence Testing 
     curr_beta  = beta_star  ;
@@ -446,8 +451,8 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
       << ", Chi2 Convergence: " << convergence_chi2 
       << ", Residual Convergence: " << convergence_res << std::endl;
     std::cout << "Convergence Variables: chi2_test: " << chi2_test << ", squares_residual: " << squares_residual << std::endl;
-    std::cout << "Search Varibles (beta_star, angle_xz, multi_coll): " << beta_star << ", " << angle_xz << ", " << multi_coll << std::endl;
-    if(fabs(convergence_chi2) < 0.01) { 
+    std::cout << "Search Variables (beta_star, angle_xz, multi_coll): " << beta_star << ", " << angle_xz << ", " << multi_coll << std::endl;
+    if(fabs(convergence_res) < 0.01) { 
       not_converged = false;
     } else { 
       prev_residual = best_residual;
@@ -475,6 +480,12 @@ int HourglassSimulation::Run(int model_opt = 0) {
       break;
     case 1:
       GenerateAmareshModel();
+      break;
+    case 2:
+      GenerateNewModelFromFit();
+      break;
+    case 3: 
+      GenerateSimpleGausModel();
       break;
     default:
       GenerateAmareshModel();
@@ -505,7 +516,7 @@ int HourglassSimulation::Run(int model_opt = 0) {
   return 0;
 }
 
-int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name) {
+int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name, const std::string& fit_file_name) {
   std::ifstream z_bunch_profile_blue(blue_f_name.c_str());
   std::ifstream z_bunch_profile_yell(yell_f_name.c_str());
   double z_pos = 0;
@@ -521,6 +532,21 @@ int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std
     z_profile_yell_[z_pos] = density;
     z_bunch_profile_yell_->SetPoint(z_bunch_profile_yell_->GetN(), z_pos, density);
   }
+
+  TFile* f = new TFile(fit_file_name.c_str(),"READ");
+  if(!f) {
+    std::cout << "was not able to open the file containing wcm fits! You will not be able to run ::GenerateNewModelFromFit!" << std::endl;
+  }
+  f_z_profile_blue_ = (TF1*)f->Get("blue_zprofile");
+  f_z_profile_yell_ = (TF1*)f->Get("yellow_zprofile");
+  f_simple_gaus_zprofile_blue_ = (TF1*)f->Get("simple_gaus_blue");
+  f_simple_gaus_zprofile_yell_ = (TF1*)f->Get("simple_gaus_yell");
+  f_simple_gaus_zprofile_blue_->SetRange(-6000,6000);
+  f_simple_gaus_zprofile_yell_->SetRange(-6000,6000);
+  f_z_profile_blue_->SetRange(-6000,6000); // to account for travelling around the PHENIX IR
+  f_z_profile_yell_->SetRange(-6000,6000);
+  save_registry_.push_back(f_z_profile_blue_);
+  save_registry_.push_back(f_z_profile_yell_);
   save_registry_.push_back(z_bunch_profile_blue_);
   save_registry_.push_back(z_bunch_profile_yell_);
   return 0;
@@ -656,37 +682,52 @@ void HourglassSimulation::GenerateAmareshModel() {
       double sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));
 
       // Z-profile density for first bunch
-      double density_z1l = 
+      double density_z_blue_left = 
         1.522*exp(-0.5*(pow((z*cos_half_angle_xz-sc_mu_zl-vel*t)/sc_sigma_zl,2)))
         *(1.0/sc_sigma_zl);//corrected for rotaion in x-z plane, 2015
-      double density_z1c = 
+      double density_z_blue_center = 
         2.157*exp(-0.5*(pow((z*cos_half_angle_xz-vel*t)/sc_sigma_zc,2)))
         *(1.0/sc_sigma_zc);//corrected for rotaion in x-z plane, 2015
-      double density_z1r =
+      double density_z_blue_right =
         1.999*exp(-0.5*(pow((z*cos_half_angle_xz-sc_mu_zr-vel*t)/sc_sigma_zr,2)))
         *(1.0/sc_sigma_zr);
 
       // Z-profile density for second bunch
-      double density_z2l =
+      double density_z_yell_left =
         1.522*exp(-0.5*(pow((z*cos_half_angle_xz+sc_mu_zl+vel*t)/sc_sigma_zl,2)))
         *(1.0/sc_sigma_zl);
-      double density_z2c = 
+      double density_z_yell_center = 
         2.157*exp(-0.5*(pow((z*cos_half_angle_xz+vel*t)/sc_sigma_zc,2)))
         *(1.0/sc_sigma_zc);
-      double density_z2r = 
+      double density_z_yell_right = 
         1.999*exp(-0.5*(pow((z*cos_half_angle_xz+sc_mu_zr+vel*t)/sc_sigma_zr,2)))
         *(1.0/sc_sigma_zr); 
 
-      double density_z1 = density_z1l + density_z1c + density_z1r;
-      double density_z2 = density_z2l + density_z2c + density_z2r;
+      double density_blue_z = density_z_blue_left + density_z_blue_center + density_z_blue_right;
+      double density_yell_z = density_z_yell_left + density_z_yell_center + density_z_yell_right;
 
       if( ! amaresh_model_run ){
         if(ct == 40){ // set for t == 0
-          amaresh_z_blue->SetPoint( amaresh_z_blue->GetN(), z, density_z1);
-          amaresh_z_yell->SetPoint( amaresh_z_yell->GetN(), z, density_z2);
+          amaresh_z_blue->SetPoint( amaresh_z_blue->GetN(), z, density_blue_z);
+          amaresh_z_yell->SetPoint( amaresh_z_yell->GetN(), z, density_yell_z);
+        }
+
+        if(!new_model_run && !amaresh_model_run ) {
+          if(ct == 35){
+            new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
+            new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
+          }
+          if(ct == 40){
+            new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
+            new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
+          }
+          if(ct == 45){
+            new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
+            new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
+          }
         }
       }
-      
+
       luminosity_normalization_ = ((n_bunch*freq*N_blue*N_yell)/pow(2*PI, 1.5))/pow(sigma_xz*sigma_yz, 2.0);
       for(int cx=0; cx<N_bin_x; cx++) {
         double x = x_position_[cx];
@@ -698,8 +739,8 @@ void HourglassSimulation::GenerateAmareshModel() {
           double density_y2 = exp(-0.5*pow((y )/sigma_yz,2.0)); // fixed bunch
 
           double d_luminosity_ = (luminosity_normalization_ * spacetime_volume
-              *(density_y1 * density_x1 * density_z1) // bunch 1
-              *(density_y2 * density_x2 * density_z2) // bunch 2
+              *(density_y1 * density_x1 * density_blue_z) // bunch 1
+              *(density_y2 * density_x2 * density_yell_z) // bunch 2
               ); // this is the summed value
           if(d_luminosity_ >= 0.0) {
             luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
@@ -740,6 +781,95 @@ void HourglassSimulation::GenerateAmareshModel() {
     save_registry_.push_back(amaresh_compare);
   }
   amaresh_model_run = true;
+}
+
+void HourglassSimulation::GenerateSimpleGausModel() {
+  std::cout << "Using Simple Gaussian Data model" << std::endl;
+  double sum_T;
+  double add_T;
+  double interaction_time = 0.;
+  double half_angle_xz = angle_xz/2.0;
+  double cos_half_angle_xz = cos(angle_xz/2.0);
+  double spacetime_volume = binsizeX*binsizeY*binsizeZ*1.0e-9*vel*binsizeT;
+
+  sum_T = 0.0;
+  luminosity_tot_ = 0.0;
+          
+  std::cout << "LUMINOSITY_NORMALIZATION: " << luminosity_normalization_ << std::endl;
+
+  // Calculate luminsosity 
+  for(int ct=0; ct<N_bin_t; ct++) {
+    double t = t_position_[ct];
+    add_T = 0.0;
+    z_norm_[ct] = 0.0;
+    for(int cz=0; cz<N_bin_z; cz++) {
+      double z = z_position_[cz];
+      double z_blue = z*cos_half_angle_xz-vel*t;
+      double z_yell = z*cos_half_angle_xz+vel*t;
+      // 359711 - width is 138
+      // double density_blue_z = f_simple_gaus_zprofile_blue_->Eval(z_blue);
+      // double density_yell_z = f_simple_gaus_zprofile_yell_->Eval(z_yell);
+      double density_blue_z = GetGaussianDensity(z_blue,138.);
+      double density_yell_z = GetGaussianDensity(z_yell,138.);
+      if(!new_model_run && !simple_gaus_model_run) {
+        if(ct == 35){
+          new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
+          new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
+        }
+        if(ct == 40){
+          new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
+          new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
+        }
+        if(ct == 45){
+          new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
+          new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
+        }
+      }
+      for(int cx=0; cx<N_bin_x; cx++) {
+        double x = x_position_[cx];
+        double x_blue = x*cos_half_angle_xz - xoff + half_angle_xz*z;
+        double x_yell = x*cos_half_angle_xz        - half_angle_xz*z;
+        if(fabs(xoff) > 0.001) std::cout << xoff << std::endl;
+        double density_blue_x = GetGaussianDensity(x_blue,BetaSqueeze(sigma_x,z*cos_half_angle_xz));
+        double density_yell_x = GetGaussianDensity(x_yell,BetaSqueeze(sigma_x,z*cos_half_angle_xz));
+        for(int cy=0; cy<N_bin_y; cy++) {    
+          double y = y_position_[cy];
+          double y_blue = y;
+          double y_yell = y;
+
+          double density_blue_y = GetGaussianDensity(y_blue,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
+          double density_yell_y = GetGaussianDensity(y_yell,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
+
+          if(fabs(luminosity_normalization_) < 0.1) {std::cout << "LUMINOSITY IS NOT PROPERLY NORMALIZED!!" << std::endl;}
+          double d_luminosity_ = ( 
+              luminosity_normalization_
+              *spacetime_volume
+              *(density_blue_x * density_blue_y * density_blue_z) // blue
+              *(density_yell_x * density_yell_y * density_yell_z) // yellow
+              ); // this is the summed value
+          if(d_luminosity_ >= 0.0) {
+            luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
+            add_T += d_luminosity_; // this is the same thing as luminosity_tot_?
+          } else {
+            std::cout << "Luminosity integral generated negative value, there is an error in the code." <<  std::endl;
+            break;
+          }
+          how_many_things++;
+        }//end loop on y
+      }//end loop on x
+      gaussian_dist_[ct][cz] = luminosity_tot_; // storing prob for 2-D z-t grid summed over x,y
+    }//end loop on z  
+    z_norm_[ct] = add_T;
+    sum_T += add_T;
+    t_dist_[ct] = sum_T;//storing prob in t with z-prob summed over
+  }//end loop on t
+
+  // should match our actual luminosity when parameters are configured
+  // correctly.
+  std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
+  std::cout << "done accumulating Gaussian distbns." << std::endl;
+  std::cout << "Interaction time: " << interaction_time << std::endl;
+  simple_gaus_model_run = true;
 }
 
 void HourglassSimulation::GenerateNewModel() {
@@ -845,6 +975,94 @@ void HourglassSimulation::GenerateNewModel() {
   std::cout << "done accumulating Gaussian distbns." << std::endl;
   std::cout << "Interaction time: " << interaction_time << std::endl;
   new_model_run = true;
+}
+
+void HourglassSimulation::GenerateNewModelFromFit() {
+  std::cout << "Using WCM Data model via Fit" << std::endl;
+  double sum_T;
+  double add_T;
+  double interaction_time = 0.;
+  double half_angle_xz = angle_xz/2.0;
+  double cos_half_angle_xz = cos(angle_xz/2.0);
+  double spacetime_volume = binsizeX*binsizeY*binsizeZ*1.0e-9*vel*binsizeT;
+
+  sum_T = 0.0;
+  luminosity_tot_ = 0.0;
+          
+  std::cout << "LUMINOSITY_NORMALIZATION: " << luminosity_normalization_ << std::endl;
+
+  // Calculate luminsosity 
+  for(int ct=0; ct<N_bin_t; ct++) {
+    double t = t_position_[ct];
+    add_T = 0.0;
+    z_norm_[ct] = 0.0;
+    for(int cz=0; cz<N_bin_z; cz++) {
+      double z = z_position_[cz];
+      
+      double z_blue = z*cos_half_angle_xz-vel*t;
+      double z_yell = z*cos_half_angle_xz+vel*t;
+      
+      double density_blue_z = f_z_profile_blue_->Eval(z_blue);
+      double density_yell_z = f_z_profile_yell_->Eval(z_yell);
+
+      if(!new_fit_model_run && !new_model_run ) {
+        if(ct == 35){
+          new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
+          new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
+        }
+        if(ct == 40){
+          new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
+          new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
+        }
+        if(ct == 45){
+          new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
+          new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
+        }
+      }
+      for(int cx=0; cx<N_bin_x; cx++) {
+        double x = x_position_[cx];
+        double x_blue = x*cos_half_angle_xz - xoff + half_angle_xz*z;
+        double x_yell = x*cos_half_angle_xz        - half_angle_xz*z;
+        double density_blue_x = GetGaussianDensity(x_blue,BetaSqueeze(sigma_x,z*cos_half_angle_xz));
+        double density_yell_x = GetGaussianDensity(x_yell,BetaSqueeze(sigma_x,z*cos_half_angle_xz));
+        for(int cy=0; cy<N_bin_y; cy++) {    
+          double y = y_position_[cy];
+          double y_blue = y;
+          double y_yell = y;
+
+          double density_blue_y = GetGaussianDensity(y_blue,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
+          double density_yell_y = GetGaussianDensity(y_yell,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
+
+          if(fabs(luminosity_normalization_) < 0.1) {std::cout << "LUMINOSITY IS NOT PROPERLY NORMALIZED!!" << std::endl;}
+          double d_luminosity_ = ( 
+              luminosity_normalization_
+              *spacetime_volume
+              *(density_blue_x * density_blue_y * density_blue_z) // blue
+              *(density_yell_x * density_yell_y * density_yell_z) // yellow
+              ); // this is the summed value
+          if(d_luminosity_ >= 0.0) {
+            luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
+            add_T += d_luminosity_; // this is the same thing as luminosity_tot_?
+          } else {
+            std::cout << "Luminosity integral generated negative value, there is an error in the code." <<  std::endl;
+            break;
+          }
+          how_many_things++;
+        }//end loop on y
+      }//end loop on x
+      gaussian_dist_[ct][cz] = luminosity_tot_; // storing prob for 2-D z-t grid summed over x,y
+    }//end loop on z  
+    z_norm_[ct] = add_T;
+    sum_T += add_T;
+    t_dist_[ct] = sum_T;//storing prob in t with z-prob summed over
+  }//end loop on t
+
+  // should match our actual luminosity when parameters are configured
+  // correctly.
+  std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
+  std::cout << "done accumulating Gaussian distbns." << std::endl;
+  std::cout << "Interaction time: " << interaction_time << std::endl;
+  new_fit_model_run = true;
 }
 
 int HourglassSimulation::GenerateZVertexProfile() {
@@ -965,7 +1183,8 @@ int HourglassSimulation::Init(
     const std::string& cfg_file, 
     const std::string& compare_file_name, 
     const std::string& z_profile_blue, 
-    const std::string& z_profile_yell
+    const std::string& z_profile_yell,
+    const std::string& fit_file_name
 ) {
   InitFromConfig(cfg_file);
   InitSpacetime();
@@ -1065,7 +1284,7 @@ int HourglassSimulation::Init(
   save_registry_.push_back(config_text);
 
   std::cout << "Done creating plots." << std::endl;
-  LoadZProfile(z_profile_blue, z_profile_yell);
+  LoadZProfile(z_profile_blue, z_profile_yell,fit_file_name);
   NormalizeDensity();
   CreateCumulativePoissonDistribution();
   first_init = true;
@@ -1127,6 +1346,7 @@ int HourglassSimulation::SaveFigures() {
   TFile* root_out = new TFile(root_out_name.str().c_str(), "RECREATE");
   booklet->Print(out_file_name.c_str());
   std::string TH1F_type = "TH1F";
+  std::string TCanvas_type = "TCanvas";
   std::cout << "Saving figures to: " << save_directory_ << "/" << save_file_stub_ << "*" << std::endl;
   for(auto plot_i = save_registry_.begin(); plot_i != save_registry_.end(); ++plot_i) {
     auto draw_obj = *plot_i;
@@ -1135,13 +1355,17 @@ int HourglassSimulation::SaveFigures() {
     draw_obj->Write();
     if(!draw_obj) continue;
     TCanvas* c = new TCanvas();
-    c->cd();
     if(TH1F_type.compare(draw_obj->ClassName()) == 0){
+      c->cd();
       ((TH1F*)draw_obj)->DrawCopy();
+      c->Print(pdf_out_name.str().c_str());
+    } else if (TCanvas_type.compare(draw_obj->ClassName()) == 0) {
+      ((TCanvas*)draw_obj)->Print(); 
     } else {
+      c->cd();
       draw_obj->Draw();
+      c->Print(pdf_out_name.str().c_str());
     }
-    c->Print(pdf_out_name.str().c_str());
     delete c;
   }
   out_file_name = pdf_out_name.str() + "]";

@@ -10,6 +10,7 @@
 #include "TCanvas.h"
 #include "TObject.h"
 #include "TPaveText.h"
+#include "TF1.h"
 
 
 class HourglassSimulation {
@@ -29,7 +30,8 @@ class HourglassSimulation {
     const std::string& cfg_file, 
     const std::string& compare_file_name, 
     const std::string& z_profile_blue, 
-    const std::string& z_profile_yell
+    const std::string& z_profile_yell,
+    const std::string& fit_file_name
     );
 
   // Use HourglassConfiguration to generate and load the default configuration
@@ -189,6 +191,10 @@ class HourglassSimulation {
   void GenerateAmareshModel();
   bool new_model_run;
   void GenerateNewModel();
+  void GenerateNewModelFromFit();
+  bool new_fit_model_run;
+  void GenerateSimpleGausModel(); 
+  bool simple_gaus_model_run;
   int ResetModel();
 
   // Uses the output of our luminosity model to generate a z-vertex profile.
@@ -221,9 +227,13 @@ class HourglassSimulation {
   // You can add an argument to this member function to make it general, but as
   // this is my code, and I'm trying to get results without messing around with
   // flexibility, the names are hardcoded.
-  int LoadZProfile(const std::string& blue_f_name, const std::string& yell_f_name);
+  int LoadZProfile(const std::string& blue_f_name, const std::string& yell_f_name, const std::string& fit_file_name);
   std::map<double,double> z_profile_blue_;
   std::map<double,double> z_profile_yell_;
+  TF1* f_z_profile_blue_;
+  TF1* f_z_profile_yell_;
+  TF1* f_simple_gaus_zprofile_blue_;
+  TF1* f_simple_gaus_zprofile_yell_;
  
  private: 
 

@@ -16,7 +16,8 @@ int Run_HourglassSimulation(
       config_file,
       hourglass_data_file[run_index],
       z_profile_density_blue[run_index],
-      z_profile_density_yellow[run_index]
+      z_profile_density_yellow[run_index],
+      z_profile_fit_file[run_index]
       );
   sim.SetSaveDirectory(plot_output);
   sim.SetSaveAll();

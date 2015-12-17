@@ -281,4 +281,14 @@ std::string z_profile_density_yellow[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_366605_density.txt",
   "/direct/phenix+spin2/beaumim/vernierScans/data/run_12/cad_data/ywcm_zprofile_367138_density.txt"
 };
+
+std::string z_profile_fit_file[7] = {
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root"
+};
 #endif
