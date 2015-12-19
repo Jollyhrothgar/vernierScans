@@ -258,11 +258,14 @@ class HourglassSimulation {
   TCanvas* simulation_config_canvas; // recreate every time ::Generate* is called
   TCanvas* config_and_vertex_compare; // recreate every time ::Generate* is called
   TCanvas* amaresh_compare; // needs to be created and filled exactly once
+  TCanvas* gaus_compare; // needs to be created and filled exactly once
   std::vector<TObject*> save_registry_; // each object created must be put in here exactly once.
 
   // adding everything as members to avoid memory issues.
   TGraph* amaresh_z_blue; // needs to be created and filled exactly once
   TGraph* amaresh_z_yell; // needs to be created and filled exactly once
+  TGraph* gaus_z_blue; // needs to be created and filled exactly once
+  TGraph* gaus_z_yell; // needs to be created and filled exactly once
   TH1F* z_lookup_diff_blue; // needs to be created and filled exactly once
   TH1F* z_lookup_diff_yell; // needs to be created and filled exactly once
   TGraph* new_model_z_blue[3]; // needs to be created and filled exactly once
