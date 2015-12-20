@@ -325,7 +325,7 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   double angle_max = 0.0025;
   double angle_mid = 0.0;
   double angle_step = (angle_max - angle_mid)*0.5;
-
+  
   std::vector<double> v_mc;
   std::vector<double> v_beta;
   std::vector<double> v_angle;
