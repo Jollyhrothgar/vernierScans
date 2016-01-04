@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 
-AM_CXXFLAGS = -Wall -Werror -std=c++0x # multithread: -fopenmp 
+AM_CXXFLAGS = -Wall -Werror -std=c++0x # alternative multithread: -fopenmp 
 
 BUILT_SOURCES = \
 	testexternals.C

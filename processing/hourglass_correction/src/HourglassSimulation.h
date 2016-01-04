@@ -295,7 +295,9 @@ class HourglassSimulation {
   // frequency of bunch crossings 
   double freq; 
 
-  // scale the z-profile bunch geometry. Why we need this is not certain.
+  // Scale is an artifact from Greg's simulation, which had the model binned in
+  // such a way that a factor of 1.5 was needed to scale the data values up to
+  // the correct values.
   double scale;
   
   // Two simulated bunches, N_blue and N_yell correspond to the average bunch

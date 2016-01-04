@@ -173,6 +173,25 @@ int HourglassSimulation::InitConfig() {
   sc_mu_zl    = mu_zl   *scale; // applying constants in lumi calculation
   sc_mu_zr    = mu_zr   *scale; // applying constants in lumi calculation
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
+
+  // Swap x and y variables for vertical scan
+  // Config file will still have the correct values, but the simulation only
+  // does the scan in one dimension.
+  if(yoff > 0){
+    double temp_sig_x = sigma_x;
+    double temp_sig_y = sigma_y;
+    double temp_x_off = xoff;
+    double temp_y_off = yoff;
+    double angle_xz_temp = angle_xz;
+    double angle_yz_temp = angle_yz;
+
+    sigma_x = temp_sig_y;
+    sigma_y = temp_sig_x;
+    xoff = temp_y_off;
+    yoff = temp_x_off;
+    angle_xz = angle_yz_temp;
+    angle_yz = angle_xz_temp;
+  }
   return 0;
 }
 
@@ -336,23 +355,17 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   v_angle.push_back(angle_mid   - angle_step);
   v_angle.push_back(angle_mid               );
   v_angle.push_back(angle_mid   + angle_step);
-  v_mc   .push_back(mc_rate_mid - mc_rate_step);
-  v_mc   .push_back(mc_rate_mid               );
-  v_mc   .push_back(mc_rate_mid + mc_rate_step);
 
   double best_beta = 0.;
-  double best_mc = 0.;
   double best_ang = 0.;
   double best_residual = 0.;
   double best_chi2 = 0.;
 
   double prev_beta  = beta_star  ;
-  double prev_mc    = multi_coll ;
   double prev_ang   = angle_xz   ;
 
   // double curr_sig_x = 0.;
   double curr_beta  = 0.;
-  double curr_mc    = 0.;
   double curr_ang   = 0.;
 
   std::map<double,HourglassConfiguration> least_squares_map;
@@ -366,41 +379,36 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     bool first_test = true;
     for(auto b = v_beta.begin(); b != v_beta.end(); ++b) {
       for(auto a = v_angle.begin(); a != v_angle.end(); ++a) {
-        for(auto m = v_mc.begin(); m != v_mc.end(); ++m ) {
-          // Here, we set the variables directly
-          beta_star  = *b;
-          angle_xz   = *a;
-          multi_coll = *m;
+        // Here, we set the variables directly
+        config_.ModifyConfigParameter("BETA_STAR",std::to_string(*b));
+        if(fabs(yoff) > 0) {
+          config_.ModifyConfigParameter("CROSSING_ANGLE_YZ",std::to_string(*a));
+        } else {
+          config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(*a));
+        }
+        InitConfig(); // Ensure that the config file, and the internal varialbes are set to the same thing.
 
-          // Save these varialbes to the config file
-          config_.ModifyConfigParameter("BETA_STAR",std::to_string(beta_star));
-          config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(angle_xz));
-          config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",std::to_string(multi_coll));
-
-          // Run a new model after setting the member variables
-          ResetModel();
-          Run(model_opt);
-          Compare();
-          if(save_all) {
-            SaveFigures();
-          }
-          if(first_test) { 
-            best_beta = beta_star;
-            best_mc = multi_coll;
-            best_ang = angle_xz;
+        // Run a new model after setting the member variables
+        ResetModel();
+        Run(model_opt);
+        Compare();
+        if(save_all) {
+          SaveFigures();
+        }
+        if(first_test) { 
+          best_beta = beta_star;
+          best_ang = angle_xz;
+          best_residual = squares_residual;
+          best_chi2 = chi2_test;
+          first_test = false;
+        } else {
+          if(squares_residual < best_residual) {
+            best_beta     = beta_star;
+            best_ang      = angle_xz;
             best_residual = squares_residual;
-            best_chi2 = chi2_test;
-            first_test = false;
-          } else {
-            if(squares_residual < best_residual) {
-              best_beta     = beta_star;
-              best_mc       = multi_coll;
-              best_ang      = angle_xz;
-              best_residual = squares_residual;
-              best_chi2     = chi2_test;
-            }
+            best_chi2     = chi2_test;
           }
-        }//multi_coll loop
+        }
       }//xing angle loop
     }//beta star loop
     beta_step = 0.5*beta_step;
@@ -408,7 +416,6 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     mc_rate_step = 0.5*mc_rate_step;
     v_beta .clear();
     v_angle.clear();
-    v_mc   .clear();
 
     // Redefine the search area
     v_beta .push_back(best_beta  - beta_step);
@@ -417,9 +424,6 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     v_angle.push_back(best_ang   - angle_step);
     v_angle.push_back(best_ang);
     v_angle.push_back(best_ang   + angle_step);
-    v_mc   .push_back(best_mc    - mc_rate_step);
-    v_mc   .push_back(best_mc);
-    v_mc   .push_back(best_mc    + mc_rate_step);
 
     std::string save_file_stub_orig = save_file_stub_;
     std::stringstream ss;
@@ -431,19 +435,15 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
 
     // Convergence Testing 
     curr_beta  = beta_star  ;
-    curr_mc    = multi_coll ;
     curr_ang   = angle_xz   ;
 
     double beta_diff  = fabs(curr_beta  - prev_beta )/curr_beta ;
-    double mc_diff    = fabs(curr_mc    - prev_mc   )/curr_mc   ;
     double ang_diff   = fabs(curr_ang   - prev_ang  )/curr_ang  ;
 
     prev_beta  = curr_beta  ;
-    prev_mc    = curr_mc    ;
     prev_ang   = curr_ang   ;
 
     std::cout << "beta_diff : " << beta_diff     << std::endl;
-    std::cout << "mc_diff   : " << mc_diff       << std::endl;
     std::cout << "ang_diff  : " << ang_diff      << std::endl;
     std::cout << "Chi2      : " << chi2_test     << std::endl;
     std::cout << "residual  : " << best_residual << std::endl;
@@ -465,7 +465,6 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   }// while loop
   std::cout << "Best Parameters: " << std::endl
     << "best_beta     : " << best_beta     << std::endl
-    << "best_mc       : " << best_mc       << std::endl
     << "best_ang      : " << best_ang      << std::endl
     << "best_residual : " << best_residual << std::endl
     << "best_chi2     : " << best_chi2     << std::endl;
@@ -658,6 +657,8 @@ int HourglassSimulation::CreateCumulativePoissonDistribution() {
   return 0;
 }
 
+// Amaresh's last known "working" model. Critically, note how normalization was
+// done.
 void HourglassSimulation::GenerateAmareshModel() {
   std::cout << "Using Amaresh Beam Profile Model" << std::endl;
   double sum_T;
@@ -786,6 +787,8 @@ void HourglassSimulation::GenerateAmareshModel() {
   amaresh_model_run = true;
 }
 
+// This is broken - because the normalization of the gaussian must be
+// transformed according to the beta-squeezing.
 void HourglassSimulation::GenerateSimpleGausModel() {
   std::cout << "Using Simple Gaussian Beam Profile Model" << std::endl;
   double sum_T;
@@ -898,6 +901,9 @@ void HourglassSimulation::GenerateSimpleGausModel() {
   simple_gaus_model_run = true;
 }
 
+// This is broken - the normalization of the densities must be transormed
+// according to the beta-star squeezing. I have not currently implemented a
+// means of doing this.
 void HourglassSimulation::GenerateNewModel() {
   std::cout << "Using WCM Data model" << std::endl;
   double sum_T;
@@ -1003,102 +1009,34 @@ void HourglassSimulation::GenerateNewModel() {
   new_model_run = true;
 }
 
+// This is currently the only method aside from Amaresh's method which handles
+// the normalization of the densities under beta-star squeezing appropriately.
 void HourglassSimulation::GenerateNewModelFromFit() {
-  /*
-  std::cout << "Using WCM Data model via Fit" << std::endl;
-  double sum_T;
-  double add_T;
-  double interaction_time = 0.;
-  double half_angle_xz = angle_xz/2.0;
-  double cos_half_angle_xz = cos(angle_xz/2.0);
-  double spacetime_volume = binsizeX*binsizeY*binsizeZ*1.0e-9*vel*binsizeT;
-
-  sum_T = 0.0;
-  luminosity_tot_ = 0.0;
-          
-  std::cout << "LUMINOSITY_NORMALIZATION: " << luminosity_normalization_ << std::endl;
-
-  // Calculate luminsosity 
-  for(int ct=0; ct<N_bin_t; ct++) {
-    double t = t_position_[ct];
-    add_T = 0.0;
-    z_norm_[ct] = 0.0;
-    for(int cz=0; cz<N_bin_z; cz++) {
-      double z = z_position_[cz];
-      
-      double z_blue = z*cos_half_angle_xz-vel*t;
-      double z_yell = z*cos_half_angle_xz+vel*t;
-      
-      double density_blue_z = f_z_profile_blue_->Eval(z_blue);
-      double density_yell_z = f_z_profile_yell_->Eval(z_yell);
-
-      if(!new_fit_model_run && !new_model_run ) {
-        if(ct == 35){
-          new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
-          new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
-        }
-        if(ct == 40){
-          new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
-          new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
-        }
-        if(ct == 45){
-          new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
-          new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
-        }
-      }
-      for(int cx=0; cx<N_bin_x; cx++) {
-        double x = x_position_[cx];
-        double x_blue = x*cos_half_angle_xz - xoff + half_angle_xz*z;
-        double x_yell = x*cos_half_angle_xz        - half_angle_xz*z;
-        double density_blue_x = GetGaussianDensity(x_blue,BetaSqueeze(sigma_x,z*cos_half_angle_xz));
-        double density_yell_x = GetGaussianDensity(x_yell,BetaSqueeze(sigma_x,z*cos_half_angle_xz));
-        for(int cy=0; cy<N_bin_y; cy++) {    
-          double y = y_position_[cy];
-          double y_blue = y;
-          double y_yell = y;
-
-          double density_blue_y = GetGaussianDensity(y_blue,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
-          double density_yell_y = GetGaussianDensity(y_yell,BetaSqueeze(sigma_y,z*cos_half_angle_xz));
-
-          if(fabs(luminosity_normalization_) < 0.1) {std::cout << "LUMINOSITY IS NOT PROPERLY NORMALIZED!!" << std::endl;}
-          double d_luminosity_ = ( 
-              luminosity_normalization_
-              *spacetime_volume
-              *(density_blue_x * density_blue_y * density_blue_z) // blue
-              *(density_yell_x * density_yell_y * density_yell_z) // yellow
-              ); // this is the summed value
-          if(d_luminosity_ >= 0.0) {
-            luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
-            add_T += d_luminosity_; // this is the same thing as luminosity_tot_?
-          } else {
-            std::cout << "Luminosity integral generated negative value, there is an error in the code." <<  std::endl;
-            break;
-          }
-          how_many_things++;
-        }//end loop on y
-      }//end loop on x
-      gaussian_dist_[ct][cz] = luminosity_tot_; // storing prob for 2-D z-t grid summed over x,y
-    }//end loop on z  
-    z_norm_[ct] = add_T;
-    sum_T += add_T;
-    t_dist_[ct] = sum_T;//storing prob in t with z-prob summed over
-  }//end loop on t
-
-  // should match our actual luminosity when parameters are configured
-  // correctly.
-  std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
-  std::cout << "done accumulating Gaussian distbns." << std::endl;
-  std::cout << "Interaction time: " << interaction_time << std::endl;
-  new_fit_model_run = true;
-  */
   std::cout << "Using fitted WCM Data Model" << std::endl;
   double sum_T;
   double add_T;
-  double sigma_xstar = sigma_x/sqrt(2.);
+  // Factor of sqrt(2) is coming from the fact that we are looking at the RMS
+  // value of simga_x and sigma_y (which in reality change as a function of z)
+  double sigma_xstar = sigma_x/sqrt(2.); 
   double sigma_ystar = sigma_y/sqrt(2.);
-  double half_angle_xz = angle_xz/2.0;
-  double cos_half_angle_xz = cos(angle_xz/2.0);
   double spacetime_volume = binsizeX*binsizeY*binsizeZ*vel*binsizeT;
+  double luminosity_constant_ = spacetime_volume*(n_bunch*freq*N_blue*N_yell);
+
+  double xing_angle = angle_xz;
+  double local_sigma_xstar = sigma_xstar;
+  double local_sigma_ystar = sigma_ystar;
+  double beam_offset = xoff;
+  double half_angle = xing_angle/2.0;
+  double cos_half_angle = cos(xing_angle/2.0);
+  if(fabs(yoff) > 0.) {
+    xing_angle = angle_yz;
+    local_sigma_xstar = sigma_ystar;
+    local_sigma_ystar = sigma_xstar;
+    beam_offset = yoff;
+    xing_angle = angle_yz;
+    half_angle = xing_angle/2.0;
+    cos_half_angle = cos(xing_angle/2.0);
+  }
 
   sum_T = 0.0;
   luminosity_tot_ = 0.0;
@@ -1110,21 +1048,16 @@ void HourglassSimulation::GenerateNewModelFromFit() {
     z_norm_[ct] = 0.0;
     for(int cz=0; cz<N_bin_z; cz++) {
       double z = z_position_[cz];
-      //corrected for angle_xz dependence, 2015
-      double sigma_xz = sigma_xstar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));
+      //corrected for xing_angle dependence, 2015
+      double sigma_xz = local_sigma_xstar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
 
-      //corrected for angle_xz dependence, 2015
-      double sigma_yz = sigma_ystar*sqrt(1 + pow(cos_half_angle_xz*z/beta_star, 2.0));
+      //corrected for xing_angle dependence, 2015
+      double sigma_yz = local_sigma_ystar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
 
-    // double density_z_blue_center = GetGaussianDensity((z*cos_half_angle_xz-vel*t),138.);
-    // double density_z_yell_center = GetGaussianDensity((z*cos_half_angle_xz+vel*t),138.);
+      double density_blue_z = f_z_profile_blue_->Eval(z*cos_half_angle-vel*t);
+      double density_yell_z = f_z_profile_yell_->Eval(z*cos_half_angle+vel*t);
 
-    // double density_blue_z = density_z_blue_center;
-    // double density_yell_z = density_z_yell_center;
-      double density_blue_z = f_z_profile_blue_->Eval(z*cos_half_angle_xz-vel*t);
-      double density_yell_z = f_z_profile_yell_->Eval(z*cos_half_angle_xz+vel*t);
-
-      if( ! simple_gaus_model_run ){
+      if( ! new_fit_model_run ){
         if(ct == 40){ // set for t == 0
           gaus_z_blue->SetPoint( gaus_z_blue->GetN(), z, density_blue_z);
           gaus_z_yell->SetPoint( gaus_z_yell->GetN(), z, density_yell_z);
@@ -1146,7 +1079,7 @@ void HourglassSimulation::GenerateNewModelFromFit() {
         }
       }
 
-      double luminosity_constant_ = spacetime_volume*(n_bunch*freq*N_blue*N_yell);
+      // Calcualte functional normalization
       double norm_x = sqrt(2.*PI)*sigma_xz;
       double norm_y = sqrt(2.*PI)*sigma_yz;
       double sigma_z1_blue = fabs(f_z_profile_blue_->GetParameter(2));
@@ -1163,12 +1096,12 @@ void HourglassSimulation::GenerateNewModelFromFit() {
       
       for(int cx=0; cx<N_bin_x; cx++) {
         double x = x_position_[cx];
-        double density_x1 = exp(-0.5*pow((x*cos_half_angle_xz-xoff+half_angle_xz*z)/sigma_xz, 2.0)); // only one bunch is offset
-        double density_x2 = exp(-0.5*pow((x*cos_half_angle_xz     -half_angle_xz*z)/sigma_xz, 2.0));
+        double density_x1 = exp(-0.5*pow((x*cos_half_angle-beam_offset+half_angle*z)/sigma_xz, 2.0)); // only one bunch is offset
+        double density_x2 = exp(-0.5*pow((x*cos_half_angle            -half_angle*z)/sigma_xz, 2.0));
         for(int cy=0; cy<N_bin_y; cy++) { 
           double y = y_position_[cy];
           double density_y1 = exp(-0.5*pow((y-yoff)/sigma_yz,2.0)); // offset bunch
-          double density_y2 = exp(-0.5*pow((y )/sigma_yz,2.0)); // fixed bunch
+          double density_y2 = density_y1; // fixed bunch
 
           double d_luminosity_ = (luminosity_normalization_
               *(density_y1 * density_x1 * density_blue_z) // bunch 1
@@ -1195,7 +1128,7 @@ void HourglassSimulation::GenerateNewModelFromFit() {
   std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
   std::cout << "done accumulating Gaussian distbns." << std::endl;
 
-  if( !simple_gaus_model_run) {
+  if( ! new_fit_model_run ) {
     gaus_compare = new TCanvas("gaus_compare","Comparing Real WCM Dist to Gaus Model",800,1200);
     gaus_compare->Divide(1,2);
     gaus_compare->cd(1);
@@ -1212,7 +1145,7 @@ void HourglassSimulation::GenerateNewModelFromFit() {
     gaus_compare->Update();
     save_registry_.push_back(gaus_compare);
   }
-  simple_gaus_model_run = true;
+  new_fit_model_run = true;
 }
 
 int HourglassSimulation::GenerateZVertexProfile() {
