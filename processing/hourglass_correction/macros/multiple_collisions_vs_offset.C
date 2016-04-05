@@ -1,4 +1,4 @@
-void root_test(){
+void multiple_collisions_vs_offset(){
   TGraph* g_mc_guess = new TGraph();
   g_mc_guess->SetName("g_mc_guess" );
   g_mc_guess->SetTitle("Multiple Collisions Guess;Beam Offset;Multiple Collision Rate Per Bunch Crossing");

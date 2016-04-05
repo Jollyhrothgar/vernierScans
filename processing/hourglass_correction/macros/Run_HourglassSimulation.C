@@ -1,16 +1,16 @@
 #include "../../../FileManagement.h"
 
 int Run_HourglassSimulation(
+  const std::string& config_file,
+  const std::string& plot_output = plots_dir,
   const std::string& file_stub,
   const int simulation_mode = 0,
   const int zprofile_mode = 0,
-  const std::string& plot_output = plots_dir,
   const std::string lib = "libVernierHourglass.so"
 ) {
   int run_index = 0;
   gSystem->Load(lib.c_str());
   HourglassSimulation sim;
-  std::string config_file = file_stub + ".conf";
   sim.SetSaveFileStub(file_stub);
   sim.Init(
       config_file,

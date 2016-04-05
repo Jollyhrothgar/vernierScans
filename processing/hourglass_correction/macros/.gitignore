@@ -6,3 +6,13 @@
 *.txt
 *.conf
 *.sh
+*.ps
+
+# Local directories for testing and debugging
+plot_full_simulation_range
+greg_examples
+359711
+pwg
+convergence_testing
+run_test_simulation
+wcm_fit_root_finder_step_0

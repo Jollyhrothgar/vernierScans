@@ -325,17 +325,40 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   // these are for 200GeV Run15 pp running
   // COLLISIONS/BUNCH CROSSING:  0.435, 0.402, 0.267, 0.126, 0.027, 0.001
   // BEAM OFFSET (mm)         :  0.0  , 0.01 , 0.025, 0.040, 0.060, 0.090
+  
+  TGraph* g_mc_guess = new TGraph();
+  g_mc_guess->SetName("g_mc_guess" );
+  g_mc_guess->SetTitle("Multiple Collisions Guess;Beam Offset;Multiple Collision Rate Per Bunch Crossing");
+  g_mc_guess->SetPoint(0, 0.0  , 0.435);
+  g_mc_guess->SetPoint(1, 0.01 , 0.402);
+  g_mc_guess->SetPoint(2, 0.025, 0.267);
+  g_mc_guess->SetPoint(3, 0.040, 0.126);
+  g_mc_guess->SetPoint(4, 0.060, 0.027);
+  g_mc_guess->SetPoint(5, 0.090, 0.001);
+  g_mc_guess->SetPoint(6, 0.1  , 0.001);
+
   bool not_converged = true;
+  double prev_residual = squares_residual;
+  double prev_chi2     = chi2_test;
+  double mc_center = 0.;
+  
+  //Define ranges - these must contain the "true values"
+  if(fabs (xoff) > fabs(yoff)) {
+    mc_center = g_mc_guess->Eval(fabs(xoff));
+  } else {
+    mc_center = g_mc_guess->Eval(fabs(yoff));
+  }
+  
+
+  std::cout << "Note, overriding intitial Multiple Collision Rate Guess before running: " << mc_center << std::endl;
+  multi_coll = mc_center;
+  
   Run(model_opt); // Run once to get initial values.
   Compare();
   SaveFigures();
 
-  double prev_residual = squares_residual;
-  double prev_chi2     = chi2_test;
-
-  //Define ranges - these must contain the "true values"
-  double mc_rate_min = 0.4;
-  double mc_rate_max = 0.5;
+  double mc_rate_min = mc_center - 0.5*mc_center;
+  double mc_rate_max = mc_center + 0.5*mc_center;
   double mc_rate_mid = (mc_rate_min+mc_rate_max)/2.0;
   double mc_rate_step = (mc_rate_max - mc_rate_mid)*0.5;
   double beta_max = beta_star+(beta_star*0.1);
@@ -349,6 +372,8 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   std::vector<double> v_beta;
   std::vector<double> v_angle;
 
+  v_mc   .push_back(mc_rate_mid - mc_rate_step);
+  v_mc   .push_back(mc_rate_mid + mc_rate_step);
   v_beta .push_back(beta_mid    - beta_step );
   v_beta .push_back(beta_mid                );
   v_beta .push_back(beta_mid    + beta_step );
@@ -360,13 +385,16 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   double best_ang = 0.;
   double best_residual = 0.;
   double best_chi2 = 0.;
+  double best_mc = 0.;
 
   double prev_beta  = beta_star  ;
   double prev_ang   = angle_xz   ;
+  double prev_mc    = multi_coll;
 
   // double curr_sig_x = 0.;
   double curr_beta  = 0.;
   double curr_ang   = 0.;
+  double curr_mc    = 0.;
 
   std::map<double,HourglassConfiguration> least_squares_map;
   std::map<double,HourglassConfiguration> chi2_map;
@@ -379,36 +407,41 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     bool first_test = true;
     for(auto b = v_beta.begin(); b != v_beta.end(); ++b) {
       for(auto a = v_angle.begin(); a != v_angle.end(); ++a) {
-        // Here, we set the variables directly
-        config_.ModifyConfigParameter("BETA_STAR",std::to_string(*b));
-        if(fabs(yoff) > 0) {
-          config_.ModifyConfigParameter("CROSSING_ANGLE_YZ",std::to_string(*a));
-        } else {
-          config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(*a));
-        }
-        InitConfig(); // Ensure that the config file, and the internal varialbes are set to the same thing.
-
-        // Run a new model after setting the member variables
-        ResetModel();
-        Run(model_opt);
-        Compare();
-        if(save_all) {
-          SaveFigures();
-        }
-        if(first_test) { 
-          best_beta = beta_star;
-          best_ang = angle_xz;
-          best_residual = squares_residual;
-          best_chi2 = chi2_test;
-          first_test = false;
-        } else {
-          if(squares_residual < best_residual) {
-            best_beta     = beta_star;
-            best_ang      = angle_xz;
-            best_residual = squares_residual;
-            best_chi2     = chi2_test;
+        for(auto m = v_mc.begin(); m != v_mc.end(); ++m) {
+          // Here, we set the variables directly
+          config_.ModifyConfigParameter("BETA_STAR",std::to_string(*b));
+          if(fabs(yoff) > 0) {
+            config_.ModifyConfigParameter("CROSSING_ANGLE_YZ",std::to_string(*a));
+          } else {
+            config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(*a));
           }
-        }
+          config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",std::to_string(*m));
+          InitConfig(); // Ensure that the config file, and the internal varialbes are set to the same thing.
+
+          // Run a new model after setting the member variables
+          ResetModel();
+          Run(model_opt);
+          Compare();
+          if(save_all) {
+            SaveFigures();
+          }
+          if(first_test) { 
+            best_beta = beta_star;
+            best_ang = angle_xz;
+            best_residual = squares_residual;
+            best_chi2 = chi2_test;
+            best_mc = multi_coll;
+            first_test = false;
+          } else {
+            if(squares_residual < best_residual) {
+              best_beta     = beta_star;
+              best_ang      = angle_xz;
+              best_residual = squares_residual;
+              best_chi2     = chi2_test;
+              best_mc       = multi_coll;
+            }
+          }
+        }// mc loop 
       }//xing angle loop
     }//beta star loop
     beta_step = 0.5*beta_step;
@@ -416,8 +449,11 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     mc_rate_step = 0.5*mc_rate_step;
     v_beta .clear();
     v_angle.clear();
+    v_mc   .clear();
 
     // Redefine the search area
+    v_mc   .push_back(best_mc - mc_rate_step);
+    v_mc   .push_back(best_mc + mc_rate_step);
     v_beta .push_back(best_beta  - beta_step);
     v_beta .push_back(best_beta);
     v_beta .push_back(best_beta  + beta_step);
@@ -436,15 +472,19 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     // Convergence Testing 
     curr_beta  = beta_star  ;
     curr_ang   = angle_xz   ;
+    curr_mc    = multi_coll ;
 
     double beta_diff  = fabs(curr_beta  - prev_beta )/curr_beta ;
     double ang_diff   = fabs(curr_ang   - prev_ang  )/curr_ang  ;
+    double mc_diff    = fabs(curr_mc - prev_mc      )/curr_mc   ;
 
     prev_beta  = curr_beta  ;
     prev_ang   = curr_ang   ;
+    prev_mc    = curr_mc    ;
 
     std::cout << "beta_diff : " << beta_diff     << std::endl;
     std::cout << "ang_diff  : " << ang_diff      << std::endl;
+    std::cout << "mc_diff   : " << mc_diff       << std::endl;
     std::cout << "Chi2      : " << chi2_test     << std::endl;
     std::cout << "residual  : " << best_residual << std::endl;
 
@@ -455,7 +495,7 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
       << ", Residual Convergence: " << convergence_res << std::endl;
     std::cout << "Convergence Variables: chi2_test: " << chi2_test << ", squares_residual: " << squares_residual << std::endl;
     std::cout << "Search Variables (beta_star, angle_xz, multi_coll): " << beta_star << ", " << angle_xz << ", " << multi_coll << std::endl;
-    if(fabs(convergence_res) < 0.01) { 
+    if(number_of_iterations == 10 ) { // this value is determined experimentally by observing behavior of chi2 vs iteraiton.
       not_converged = false;
     } else { 
       prev_residual = best_residual;
@@ -467,7 +507,8 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     << "best_beta     : " << best_beta     << std::endl
     << "best_ang      : " << best_ang      << std::endl
     << "best_residual : " << best_residual << std::endl
-    << "best_chi2     : " << best_chi2     << std::endl;
+    << "best_chi2     : " << best_chi2     << std::endl
+    << "best_mc       : " << best_mc       << std::endl;
   return 0;
 }
 
