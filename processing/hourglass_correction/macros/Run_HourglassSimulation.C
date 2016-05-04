@@ -1,13 +1,17 @@
 #include "../../../FileManagement.h"
+#include <map>
 
 int Run_HourglassSimulation(
   const std::string& config_file,
   const std::string& plot_output = plots_dir,
   const std::string& file_stub,
-  const int simulation_mode = 0,
-  const int zprofile_mode = 0,
+  const int simulation_mode = "",
+  const int zprofile_mode = "",
   const std::string lib = "libVernierHourglass.so"
 ) {
+  
+  std::map<std::string,int> my_map;
+
   int run_index = 0;
   gSystem->Load(lib.c_str());
   HourglassSimulation sim;
