@@ -35,6 +35,13 @@ int PRDFBBCRate::Init(
   bbc_raw_rate_vs_time_ -> SetMarkerSize(0.75);
   bbc_raw_rate_vs_time_ -> SetMarkerColor(kRed);
   bbc_raw_rate_vs_time_ -> SetLineColor(kBlack);
+	g_bbc_w_live_ = new TGraph(); 
+	g_bbc_w_live_->SetName("g_bbc_w_live_");
+	g_bbc_w_live_->SetTitle("BBC Wide Live;check this axis;check this axis");
+	g_bbc_w_live_->SetMarkerStyle(kFullCircle);
+	g_bbc_w_live_->SetMarkerSize(0.75);
+	g_bbc_w_live_->SetMarkerColor(kBlue);
+	g_bbc_w_live_->SetLineColor(kBlack);
 
   scaler_vs_time_["bbc_w_raw"] = new TGraph();
   scaler_vs_time_["bbc_n_raw"] = new TGraph();
@@ -150,8 +157,9 @@ int PRDFBBCRate::Run() {
       // std::cout << "Test rate, BBCLL1(>0 tubes): " << std::setw(12) << test_rate << " Hz " << std::endl;
       float bbc_w_livetime = bbc_w_live_counts/bbc_w_raw_counts;
 
-      // Already have a graph called g_bbc_w_live
-      g_bbc_w_live->SetPoint(g_bbc_w_live->GetN(), time, bbc_w_livetime);
+      // Already have a graph called g_bbc_w_live_ ? (check this - maybe its in the graph map scaler_vs_time)
+			// wp does this need to be deleted because it is redundant?
+      g_bbc_w_live_->SetPoint(g_bbc_w_live_->GetN(), approx_time, bbc_w_livetime);
 
       float bbc_n_livetime = bbc_n_live_counts/bbc_n_raw_counts;
       float clock_livetime = clock_live_counts/clock_raw_counts;

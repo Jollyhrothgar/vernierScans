@@ -140,6 +140,7 @@ class PRDFBBCRate{
   std::map<unsigned long long, Scaler > prdf_data_;
   TGraph* bbc_raw_rate_vs_time_;
   TGraph* bbc_live_rate_vs_time_;
+	TGraph* g_bbc_w_live_;
   std::map<std::string,TGraph*> scaler_vs_time_;
 
   std::vector< std::pair<double , double> > bbc_w_raw_rate_;
