@@ -146,8 +146,8 @@ int HourglassSimulation::ShowConfig() {
 int HourglassSimulation::InitConfig() {
   run_number_ = config_.GetPar("RUN_NUMBER");
   count_norm  = std::stoi(config_.GetPar("ZDC_COUNTS"));
-  xoff        = std::stod(config_.GetPar("X_OFFSET"));
-  yoff        = std::stod(config_.GetPar("Y_OFFSET"));
+  xoff        = fabs(std::stod(config_.GetPar("X_OFFSET")));
+  yoff        = fabs(std::stod(config_.GetPar("Y_OFFSET")));
   sigma_x     = std::stod(config_.GetPar("HORIZONTAL_BEAM_WIDTH"));
   sigma_y     = std::stod(config_.GetPar("VERTICAL_BEAM_WIDTH")  );
   N_blue      = std::stod(config_.GetPar("AVG_NUMBER_IONS_BLUE_BEAM"));
@@ -174,24 +174,11 @@ int HourglassSimulation::InitConfig() {
   sc_mu_zr    = mu_zr   *scale; // applying constants in lumi calculation
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
 
-  // Swap x and y variables for vertical scan
-  // Config file will still have the correct values, but the simulation only
-  // does the scan in one dimension.
-  if(yoff > 0){
-    double temp_sig_x = sigma_x;
-    double temp_sig_y = sigma_y;
-    double temp_x_off = xoff;
-    double temp_y_off = yoff;
-    double angle_xz_temp = angle_xz;
-    double angle_yz_temp = angle_yz;
 
-    sigma_x = temp_sig_y;
-    sigma_y = temp_sig_x;
-    xoff = temp_y_off;
-    yoff = temp_x_off;
-    angle_xz = angle_yz_temp;
-    angle_yz = angle_xz_temp;
-  }
+  // Simulation only handles X-Z crossing angle. We must transform all scans
+  // which don't involve displacements in X to the appropriate coordinate frame.
+  
+
   return 0;
 }
 
@@ -329,6 +316,8 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   TGraph* g_mc_guess = new TGraph();
   g_mc_guess->SetName("g_mc_guess" );
   g_mc_guess->SetTitle("Multiple Collisions Guess;Beam Offset;Multiple Collision Rate Per Bunch Crossing");
+
+  // This is obtained from a previous analysis
   g_mc_guess->SetPoint(0, 0.0  , 0.435);
   g_mc_guess->SetPoint(1, 0.01 , 0.402);
   g_mc_guess->SetPoint(2, 0.025, 0.267);
@@ -349,11 +338,11 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
     mc_center = g_mc_guess->Eval(fabs(yoff));
   }
   
-
-  std::cout << "Note, overriding intitial Multiple Collision Rate Guess before running: " << mc_center << std::endl;
+  std::cout <<  "Note, overriding intitial Multiple Collision Rate Guess before running: " 
+    << mc_center << std::endl;
   multi_coll = mc_center;
   
-  Run(model_opt); // Run once to get initial values.
+  Run(); // Run once to get initial values.
   Compare();
   SaveFigures();
 
@@ -420,7 +409,7 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
 
           // Run a new model after setting the member variables
           ResetModel();
-          Run(model_opt);
+          Run();
           Compare();
           if(save_all) {
             SaveFigures();
@@ -512,7 +501,7 @@ int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare
   return 0;
 }
 
-int HourglassSimulation::Run(int model_opt = 0) {
+int HourglassSimulation::Run() {
   time_tracker[0] = GetTime().count();
   std::cout << "phase " << 0 << std::endl;
   ShowConfig();
@@ -529,11 +518,13 @@ int HourglassSimulation::Run(int model_opt = 0) {
   while(first_itr != time_tracker.end() && second_itr != time_tracker.end()) {
     int phase = first_itr->first; 
     double time = second_itr->second - first_itr->second;
-    std::cout << "Phase " << phase  << " time: " << time << " ms (" << (double)time/1000. << " s)" << std::endl;
+    std::cout << "Phase " << phase  
+      << " time: " << time << " ms (" << (double)time/1000. << " s)" << std::endl;
     ++first_itr;
     ++second_itr;
   }
-  std::cout << "In the modeling loop, we performed: " << how_many_things << " iterations." << std::endl;
+  std::cout << "In the modeling loop, we performed: " << how_many_things << " iterations." 
+    << std::endl;
   how_many_runs++;
   return 0;
 }

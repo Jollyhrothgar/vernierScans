@@ -49,7 +49,7 @@ class HourglassSimulation {
   bool override_save_file_;
 
   // Simulates Z-vertex profile for ZDC, given configuration loaded. 
-  int Run(int model_opt);  
+  int Run();  
 
   // Track how many times we had to call "Run"
   int how_many_runs;

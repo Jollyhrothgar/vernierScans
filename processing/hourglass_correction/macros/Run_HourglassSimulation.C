@@ -5,8 +5,7 @@ int Run_HourglassSimulation(
   const std::string& config_file,
   const std::string& plot_output = plots_dir,
   const std::string& file_stub,
-  const int simulation_mode = "",
-  const int zprofile_mode = "",
+  const int simulation_mode,
   const std::string lib = "libVernierHourglass.so"
 ) {
   
@@ -27,7 +26,7 @@ int Run_HourglassSimulation(
   sim.SetSaveAll();
   switch (simulation_mode) {
     case 0:
-      sim.Run(zprofile_mode);
+      sim.Run();
       sim.Compare();
       break;
     case 1:
