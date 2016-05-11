@@ -188,12 +188,9 @@ class HourglassSimulation {
   // * z_dist_ -> 
   int CreateCumulativePoissonDistribution();
   bool amaresh_model_run;
-  void GenerateAmareshModel();
   bool new_model_run;
-  void GenerateNewModel();
-  void GenerateNewModelFromFit();
+  void GenerateModel();
   bool new_fit_model_run;
-  void GenerateSimpleGausModel(); 
   bool simple_gaus_model_run;
   int ResetModel();
 
