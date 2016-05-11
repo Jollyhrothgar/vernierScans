@@ -1,8 +1,6 @@
 #ifndef __HOURGLASS_SIMULATION__
 #define __HOURGLASS_SIMULATION__
 
-// This is a test
-
 #include "HourglassConfiguration.h"
 #include <string>
 #include <vector>
