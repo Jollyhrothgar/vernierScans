@@ -175,6 +175,8 @@ int HourglassSimulation::InitConfig() {
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
 
 
+  count_norm = 100000;
+
   // Simulation only handles X-Z crossing angle. We must transform all scans
   // which don't involve displacements in X to the appropriate coordinate frame.
   
@@ -308,7 +310,27 @@ double HourglassSimulation::SmearZVertex(double rand_prob_res, double orig_z){
   return smeared_z;
 }
 
-int HourglassSimulation::RunRootFinder(int model_opt ,const std::string& compare_file) {
+int HourglassSimulation::RunBruteForce() {
+  /*
+  TGraph* g_mc_guess = new TGraph();
+  g_mc_guess->SetName("g_mc_guess" );
+  g_mc_guess->SetTitle("Multiple Collisions Guess;Beam Offset;Multiple Collision Rate Per Bunch Crossing");
+
+  double mc_rate_min = mc_center - 0.5*mc_center;
+  double mc_rate_max = mc_center + 0.5*mc_center;
+  double mc_rate_mid = (mc_rate_min+mc_rate_max)/2.0;
+  double mc_rate_step = (mc_rate_max - mc_rate_mid)*0.5;
+  double beta_max = beta_star+(beta_star*0.1);
+  double beta_mid = beta_star;
+  double beta_step = (beta_max - beta_mid)*0.5;
+  double angle_max = 0.0025;
+  double angle_mid = 0.0;
+  double angle_step = (angle_max - angle_mid)*0.5;
+  */
+  return 0;
+}
+
+int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
   // these are for 200GeV Run15 pp running
   // COLLISIONS/BUNCH CROSSING:  0.435, 0.402, 0.267, 0.126, 0.027, 0.001
   // BEAM OFFSET (mm)         :  0.0  , 0.01 , 0.025, 0.040, 0.060, 0.090

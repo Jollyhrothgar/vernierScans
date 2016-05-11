@@ -76,7 +76,7 @@ Double_t g3y_range[7][2] =
   {120.,170.}
 };
 
-void fit_blue_yellow(int index = 2){
+void fit_blue_yellow(int index = 0){
   const int run_index = index;
   std::string in_tfile_name = "wcm_dists.root";
   std::string out_tfile_name = "fits.root";

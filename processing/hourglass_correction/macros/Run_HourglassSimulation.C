@@ -1,4 +1,4 @@
-#include "../../../FileManagement.h"
+#include "FileManagement.h"
 #include <map>
 
 int Run_HourglassSimulation(
@@ -30,7 +30,7 @@ int Run_HourglassSimulation(
       sim.Compare();
       break;
     case 1:
-      sim.RunRootFinder(zprofile_mode,hourglass_data_file[run_index]);
+      sim.RunRootFinder(hourglass_data_file[run_index]);
       break;
     default:
       std::cout << "no adequate running mode supplied." << std::endl;

@@ -71,12 +71,15 @@ class HourglassSimulation {
 
   // Runs simuluations until convergence is met, final good configuration is
   // saved. Must initialize as normal, but best config file will be saved.
-  int RunRootFinder(int model_opt, const std::string& compare_file);
+  int RunRootFinder(const std::string& compare_file);
   // Compare to a data distribution
   // The proper zdc distribution is extracted from the config file, the root
   // file which contains this distribution is passed as compare_file_name. The
   // simulated z-vertex is plotted on top of the real z-vertex distribution, and
   // the canvas is saved to the registry.
+  
+  // Run over a range of possible values starting with a close distribution
+  int RunBruteForce();
 
   // Keeps track of the number of times Reset() is called
   int number_of_iterations;
