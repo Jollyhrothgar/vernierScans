@@ -517,35 +517,15 @@ int HourglassSimulation::Run(int model_opt = 0) {
   time_tracker[0] = GetTime().count();
   std::cout << "phase " << 0 << std::endl;
   ShowConfig();
-  switch(model_opt) {
-    case 0:
-      GenerateNewModel();
-      break;
-    case 1:
-      GenerateAmareshModel();
-      break;
-    case 2:
-      GenerateNewModelFromFit();
-      break;
-    case 3: 
-      GenerateSimpleGausModel();
-      break;
-    default:
-      GenerateAmareshModel();
-      break;
-  }
+  GenerateNewModelFromFit();
   time_tracker[1] = GetTime().count();
   std::cout << "phase " << 1 << std::endl;
-
   GenerateZVertexProfile();
-
   time_tracker[2] = GetTime().count();
-
   // FINISHED - show some timing statistics
   auto first_itr = time_tracker.begin();
   auto second_itr = time_tracker.begin();
   ++second_itr;
-
   std::cout << "TIME Analysis: " << std::endl;
   while(first_itr != time_tracker.end() && second_itr != time_tracker.end()) {
     int phase = first_itr->first; 
