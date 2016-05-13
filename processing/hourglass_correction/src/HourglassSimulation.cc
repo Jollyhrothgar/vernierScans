@@ -56,8 +56,6 @@ HourglassSimulation::HourglassSimulation() {
   simulation_config_canvas = NULL;
   config_and_vertex_compare = NULL;
   amaresh_compare = NULL;
-  amaresh_z_blue = NULL;
-  amaresh_z_yell = NULL;
   gaus_compare = NULL;
   gaus_z_blue = NULL;
   gaus_z_yell = NULL;
@@ -174,11 +172,15 @@ int HourglassSimulation::InitConfig() {
   sc_mu_zr    = mu_zr   *scale; // applying constants in lumi calculation
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
 
-
-  count_norm = 100000;
-
   // Simulation only handles X-Z crossing angle. We must transform all scans
   // which don't involve displacements in X to the appropriate coordinate frame.
+  if (fabs(xoff) < 0.001) {
+    xoff = yoff;
+    yoff = 0.;
+    double temp_sigma = sigma_x;
+    sigma_x = sigma_y;
+    sigma_y = temp_sigma;
+  }
   
 
   return 0;
@@ -715,8 +717,8 @@ void HourglassSimulation::GenerateModel() {
       //corrected for xing_angle dependence, 2015
       double sigma_yz = local_sigma_ystar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
 
-      double density_blue_z = f_z_profile_blue_->Eval(z*cos_half_angle-vel*t);
-      double density_yell_z = f_z_profile_yell_->Eval(z*cos_half_angle+vel*t);
+      double density_blue_z = fabs(f_z_profile_blue_->Eval(z*cos_half_angle-vel*t));
+      double density_yell_z = fabs(f_z_profile_yell_->Eval(z*cos_half_angle+vel*t));
 
       if( ! new_fit_model_run ){
         if(ct == 40){ // set for t == 0
@@ -768,11 +770,13 @@ void HourglassSimulation::GenerateModel() {
               *(density_y1 * density_x1 * density_blue_z) // bunch 1
               *(density_y2 * density_x2 * density_yell_z) // bunch 2
               ); // this is the summed value
+          //std::cout << d_luminosity_ << std::endl;
           if(d_luminosity_ >= 0.0) {
             luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
             add_T += d_luminosity_; // this is the same thing as luminosity_tot_?
           } else {
-            std::cout << "Luminosity integral generated negative value, there is an error in the code." << std::endl;
+            std::cout << "Luminosity integral generated negative value, it should not be" 
+              << std::endl;
             break;
           }
           how_many_things++;
@@ -998,14 +1002,6 @@ int HourglassSimulation::Init(
   z_bunch_profile_yell_->SetLineWidth(2);
   z_bunch_profile_blue_->SetLineColor(kBlue+2);
   z_bunch_profile_yell_->SetLineColor(kOrange+2);
-  amaresh_z_blue = new TGraph();
-  amaresh_z_blue->SetName("amaresh_z_blue");
-  amaresh_z_blue->SetTitle("amaresh_z_blue");
-  amaresh_z_yell = new TGraph();
-  amaresh_z_yell->SetName("amaresh_z_yell");
-  amaresh_z_yell->SetTitle("amaresh_z_yell");
-  save_registry_.push_back(amaresh_z_blue);
-  save_registry_.push_back(amaresh_z_yell);
   
   gaus_z_blue = new TGraph();
   gaus_z_blue->SetName("gaus_z_blue");

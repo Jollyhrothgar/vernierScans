@@ -26,6 +26,6 @@ int Run_BBCRate(
       run.str()
       );
   bbc_rate.Run();
-  bbc_rate.MakeFigures("/direct/phenix+spin2/beaumim/vernierScans/plots");
+  bbc_rate.MakeFigures(plots_dir);
   return 0;
 }

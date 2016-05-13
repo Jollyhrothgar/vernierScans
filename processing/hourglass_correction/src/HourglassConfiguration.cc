@@ -52,8 +52,9 @@ int HourglassConfiguration::GenerateEmptyConfigFile() {
 }
 
 int HourglassConfiguration::SetDefaultValues() {
-  // Default values are set to the first scan step of Run 359711, a vernier scan
-  // from Run 12.
+  // These are reasonable values for Run 12. The values are updated with better
+  // values when the analysis is run from the root directory of this package
+  // with the perl script "run_analysis.pl"
   ModifyConfigParameter("RUN_NUMBER"                    , "359711");
   ModifyConfigParameter("ZDC_COUNTS"                    , "891");
   ModifyConfigParameter("X_OFFSET"                      , "-0.1");

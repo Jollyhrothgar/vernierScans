@@ -284,8 +284,8 @@ std::string z_profile_density_yellow[7] = {
 
 std::string z_profile_fit_file[7] = {
   "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
-  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
-  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_360879.root",
+  "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_362492.root",
   "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
   "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",
   "/direct/phenix+spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/zprofile_fit_run_359711.root",

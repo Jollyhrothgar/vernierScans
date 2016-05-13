@@ -5,7 +5,7 @@ int Run_HourglassConfiguration(
   gSystem->Load("libVernierHourglass.so");
   HourglassConfiguration config;
 
-  int run_index = 0;
+  int run_index = 1;
   // MODE 1:  Create All Config Files
   // Batch Configure
   config.BatchCreateConfigFiles(
