@@ -11,7 +11,7 @@ void Run_BeamPositionSteps(
     relative_time_step_boundaries[run_index]
      );
   bpm.Run();
-  bpm.SaveEpochSteps("/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/prdf_tools/processing/time_compressed_processing/data");
-  bpm.GetCentralStepTime(3);
-  bpm.MakeFigures("/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/prdf_tools/processing/time_compressed_processing/plots");
+  //bpm.SaveEpochSteps("/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/prdf_tools/processing/time_compressed_processing/data");
+  std::cout << bpm.GetCentralStepTime(3) << std::endl;
+  //bpm.MakeFigures("/direct/phenix+spin2/beaumim/vernierScans/prdf_analysis/prdf_tools/processing/time_compressed_processing/plots");
 }

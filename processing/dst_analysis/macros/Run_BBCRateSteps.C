@@ -10,7 +10,6 @@ void Run_BBCRateSteps(
     ) 
 {
   gSystem->Load(lib.c_str());
-  gSystem->Load("/direct/phenix+u/workarea/beaumim/install/lib/Vernier_Dict_rdict.pcm");
   BBCRateSteps bbc;
   bbc.Init(
       run_number[run_index],
