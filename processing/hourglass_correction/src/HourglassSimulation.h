@@ -42,9 +42,6 @@ class HourglassSimulation {
   // for running many simulations over smoothly varying parameters.
   int InitFromConfig(const std::string& config_file);
 
-  // For Development/shape Tuning: override the default save file location and
-  // name to run simulaitons interactively in order to tune simulation.
-  int OverrideSaveFile(const std::string& file_name);
   std::string override_save_file_name_;
   bool override_save_file_;
 
@@ -95,13 +92,6 @@ class HourglassSimulation {
   // stores the average squared residual between zdc_zvertex_sim and
   // zdc_zvertex_dat. 
   double squares_residual;
-  
-  // Kills all dynamically allocated memory, but saves the configuration file
-  int Reset();
-
-  // Saves the currently used Configruation File to the directory of your choice
-  // config file name will be: <run_number>_h<hOffset>_v<vOffset>.conf. 
-  int SaveConfig(const std::string& config_dir);
 
   // Shows the simulation configuration used. Some config parameters have
   // operations applied to them immediately before use.
@@ -126,7 +116,7 @@ class HourglassSimulation {
   bool first_init;
 
   // Performance Tracking Variables
-  long long unsigned int how_many_things = 0; 
+  long long unsigned int how_many_things; 
   std::map<int, long long unsigned int > time_tracker;
 
   // Spatial Coordinates

@@ -50,8 +50,6 @@ HourglassSimulation::HourglassSimulation() {
   first_init = false;
   zdc_zvertex_sim = NULL;
   zdc_zvertex_dat = NULL;
-  z_bunch_profile_blue_ = NULL;
-  z_bunch_profile_yell_ = NULL;
   zvertex_comparison_canvas = NULL;
   simulation_config_canvas = NULL;
   config_and_vertex_compare = NULL;
@@ -422,13 +420,19 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
       for(auto a = v_angle.begin(); a != v_angle.end(); ++a) {
         for(auto m = v_mc.begin(); m != v_mc.end(); ++m) {
           // Here, we set the variables directly
-          config_.ModifyConfigParameter("BETA_STAR",std::to_string(*b));
-          if(fabs(yoff) > 0) {
-            config_.ModifyConfigParameter("CROSSING_ANGLE_YZ",std::to_string(*a));
-          } else {
-            config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",std::to_string(*a));
-          }
-          config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",std::to_string(*m));
+	  std::stringstream update_beta;
+	  update_beta << *b;
+	  std::stringstream update_ang;
+	  update_ang << *a;
+	  std::stringstream update_mc; 
+	  update_mc << *m;
+          config_.ModifyConfigParameter("BETA_STAR",update_beta.str());
+          config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",update_ang.str());
+          config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",update_mc.str());
+
+	  update_ang.str("");
+	  update_mc.str("");
+	  update_beta.str("");
           InitConfig(); // Ensure that the config file, and the internal varialbes are set to the same thing.
 
           // Run a new model after setting the member variables
@@ -476,7 +480,7 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
 
     std::string save_file_stub_orig = save_file_stub_;
     std::stringstream ss;
-    ss <<  save_file_stub_ << "_iteration_" <<  std::setfill('0') << std::setw(3) << std::to_string(number_of_iterations);
+    ss <<  save_file_stub_ << "_iteration_" <<  std::setfill('0') << std::setw(3) << number_of_iterations;
     save_file_stub_ = ss.str();
     SaveFigures();
     save_file_stub_ = save_file_stub_orig;
@@ -554,22 +558,6 @@ int HourglassSimulation::Run() {
 }
 
 int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name, const std::string& fit_file_name) {
-  std::ifstream z_bunch_profile_blue(blue_f_name.c_str());
-  std::ifstream z_bunch_profile_yell(yell_f_name.c_str());
-  double z_pos = 0;
-  double density = 0;
-
-  while(z_bunch_profile_blue >> z_pos >> density) {
-    z_profile_blue_[z_pos] = density;
-    z_bunch_profile_blue_->SetPoint(z_bunch_profile_blue_->GetN(), z_pos, density);
-  }
-  z_pos = 0;
-  density = 0;
-  while(z_bunch_profile_yell >> z_pos >> density) {
-    z_profile_yell_[z_pos] = density;
-    z_bunch_profile_yell_->SetPoint(z_bunch_profile_yell_->GetN(), z_pos, density);
-  }
-
   TFile* f = new TFile(fit_file_name.c_str(),"READ");
   if(!f) {
     std::cout << "was not able to open the file containing wcm fits! You will not be able to run ::GenerateNewModelFromFit!" << std::endl;
@@ -584,53 +572,12 @@ int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std
   f_z_profile_yell_->SetRange(-6000,6000);
   save_registry_.push_back(f_z_profile_blue_);
   save_registry_.push_back(f_z_profile_yell_);
-  save_registry_.push_back(z_bunch_profile_blue_);
-  save_registry_.push_back(z_bunch_profile_yell_);
+  std::cout << "loaded z profile" << std::endl;
   return 0;
-}
-
-void HourglassSimulation::NormalizeDensity() {
-  density_normalization_ = 0.;
-  double z_temp = 0.;
-  double volume = binsizeX*binsizeY*binsizeZ;
-  for(auto x_i = x_position_.begin(); x_i != x_position_.end(); ++x_i){
-    for(auto z_i = z_position_.begin(); z_i != z_position_.end(); ++z_i){
-      for(auto y_i = y_position_.begin(); y_i != y_position_.end(); ++y_i){
-        density_normalization_ += 
-          GetGaussianDensity(*x_i, sigma_x)
-          *GetGaussianDensity(*y_i,sigma_y)
-          *LookupZDensityBlue(*z_i,z_temp)
-          *volume;
-      }
-    }
-  }
-  // Now get the luminosity normalization, while we're at it.
-  luminosity_normalization_ = 
-    2.0*
-    (0.5/density_normalization_)
-    *N_blue*N_yell*freq*n_bunch;
 }
 
 double HourglassSimulation::GetGaussianDensity(double x, double sigma){
   return exp(-0.5*pow(x/sigma,2.0));
-}
-
-// Assumes that we have our wcm density binned at a resolution of
-// 1.5 cm
-double HourglassSimulation::LookupZDensityBlue(double z, double& found_z) {
-  auto first_element = z_profile_blue_.begin();
-  auto last_element  = z_profile_blue_.end();
-  --last_element; 
-  if( z < first_element->first || z > last_element->first) {
-    return 0.;
-  }
-  auto found = z_profile_blue_.lower_bound(z);
-  if(found == last_element && fabs(found->first - z) > 3.) { 
-    std::cout << "Lookup failed, there is no density to use!" << std::endl
-      << "Lookup Z: " << z << std::endl;
-  }
-  found_z = found->first; 
-  return found->second;
 }
 
 double HourglassSimulation::LookupZDensityYell(double z, double& found_z) {
@@ -803,11 +750,6 @@ void HourglassSimulation::GenerateModel() {
     gaus_z_yell->SetLineColor(kOrange+2);
     gaus_z_blue->Draw("AL");
     gaus_z_yell->Draw("L");
-    gaus_compare->cd(2);
-    z_bunch_profile_blue_->Draw("AL");
-    z_bunch_profile_yell_->Draw("L");
-    z_bunch_profile_blue_->GetXaxis()->SetRangeUser(-300.,300.);
-    gaus_compare->Update();
     save_registry_.push_back(gaus_compare);
   }
   new_fit_model_run = true;
@@ -994,14 +936,6 @@ int HourglassSimulation::Init(
   save_registry_.push_back(zvertex_comparison_canvas);
   save_registry_.push_back(simulation_config_canvas);
   save_registry_.push_back(config_and_vertex_compare);
-  z_bunch_profile_blue_ = new TGraph();
-  z_bunch_profile_yell_ = new TGraph();
-  z_bunch_profile_blue_->SetName("blue_z_bunch_profile");
-  z_bunch_profile_yell_->SetName("yell_z_bunch_profile");
-  z_bunch_profile_blue_->SetLineWidth(2);
-  z_bunch_profile_yell_->SetLineWidth(2);
-  z_bunch_profile_blue_->SetLineColor(kBlue+2);
-  z_bunch_profile_yell_->SetLineColor(kOrange+2);
   
   gaus_z_blue = new TGraph();
   gaus_z_blue->SetName("gaus_z_blue");
@@ -1035,7 +969,6 @@ int HourglassSimulation::Init(
 
   std::cout << "Done creating plots." << std::endl;
   LoadZProfile(z_profile_blue, z_profile_yell,fit_file_name);
-  NormalizeDensity();
   CreateCumulativePoissonDistribution();
   first_init = true;
   delete data;
@@ -1054,6 +987,7 @@ int HourglassSimulation::ResetModel() {
   simulation_config_canvas->Clear("D");
   config_and_vertex_compare->Clear("D");
   config_text->Clear("D");
+  std::cout << "done creating poisson distribution" << std::endl;
   return 0;
 }
 

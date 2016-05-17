@@ -2,7 +2,7 @@
 #define __HOURGLASS_DATA_H__
 
 // Header File For Linked Libraries
-#include "/direct/phenix+spin2/beaumim/vernierScans/processing/dst_analysis/src/BeamPositionSteps.h"
+#include "/gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/dst_analysis/src/BeamPositionSteps.h"
 
 // STL
 #include <string>
