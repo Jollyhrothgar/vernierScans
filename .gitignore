@@ -57,8 +57,5 @@ merged_trees
 # don't commit temp files
 .*.swp
 
-# ignore config files for fitting, for now
-*.conf
-
 # ignore vim plugins
 .ycm*
