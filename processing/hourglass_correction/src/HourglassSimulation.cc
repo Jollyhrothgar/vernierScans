@@ -560,7 +560,7 @@ int HourglassSimulation::Run() {
 int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name, const std::string& fit_file_name) {
   TFile* f = new TFile(fit_file_name.c_str(),"READ");
   if(!f) {
-    std::cout << "was not able to open the file containing wcm fits! You will not be able to run ::GenerateNewModelFromFit!" << std::endl;
+    std::cout << "was not able to open the file containing wcm fits! You will not be able to run ::GenerateModel!" << std::endl;
   }
   f_z_profile_blue_ = (TF1*)f->Get("blue_zprofile");
   f_z_profile_yell_ = (TF1*)f->Get("yellow_zprofile");

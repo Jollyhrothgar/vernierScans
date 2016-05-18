@@ -2,7 +2,13 @@
 plots
 
 # can't store data online, bummer!
-data
+data/run_12/backup_files
+data/run_12/cad_data
+data/run_12/dst_data
+data/run_12/prdf_data
+data/run_12/prdf_dst_merged
+data/run_12/scaler_data
+data/run_12/scripts
 
 # don't do anything with garbage in build directories
 build
