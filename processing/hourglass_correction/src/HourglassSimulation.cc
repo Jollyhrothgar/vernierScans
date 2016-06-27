@@ -629,8 +629,6 @@ void HourglassSimulation::GenerateModel() {
   // value of simga_x and sigma_y (which in reality change as a function of z)
   double sigma_xstar = sigma_x/sqrt(2.); 
   double sigma_ystar = sigma_y/sqrt(2.);
-  double spacetime_volume = binsizeX*binsizeY*binsizeZ*vel*binsizeT;
-  double luminosity_constant_ = spacetime_volume*(n_bunch*freq*N_blue*N_yell);
 
   double xing_angle = angle_xz;
   double local_sigma_xstar = sigma_xstar;
@@ -689,32 +687,18 @@ void HourglassSimulation::GenerateModel() {
         }
       }
 
-      // Calcualte functional normalization
-      double norm_x = sqrt(2.*PI)*sigma_xz;
-      double norm_y = sqrt(2.*PI)*sigma_yz;
-      double sigma_z1_blue = fabs(f_z_profile_blue_->GetParameter(2));
-      double sigma_z2_blue = fabs(f_z_profile_blue_->GetParameter(5));
-      double sigma_z3_blue = fabs(f_z_profile_blue_->GetParameter(8));
-      double sigma_z1_yell = fabs(f_z_profile_yell_->GetParameter(2));
-      double sigma_z2_yell = fabs(f_z_profile_yell_->GetParameter(5));
-      double sigma_z3_yell = fabs(f_z_profile_yell_->GetParameter(8));
-
-      double norm_z_blue = sqrt(2.*PI)*(sigma_z1_blue+sigma_z2_blue+sigma_z3_blue);
-      double norm_z_yell = sqrt(2.*PI)*(sigma_z1_yell+sigma_z2_yell+sigma_z3_yell);
-
-      luminosity_normalization_ = luminosity_constant_/(2.*norm_x*norm_y*norm_z_blue*norm_z_yell);
-      
       for(int cx=0; cx<N_bin_x; cx++) {
         double x = x_position_[cx];
         double density_x1 = exp(-0.5*pow((x*cos_half_angle-beam_offset+half_angle*z)/sigma_xz, 2.0)); // only one bunch is offset
         double density_x2 = exp(-0.5*pow((x*cos_half_angle            -half_angle*z)/sigma_xz, 2.0));
         for(int cy=0; cy<N_bin_y; cy++) { 
           double y = y_position_[cy];
-          double density_y1 = exp(-0.5*pow((y-yoff)/sigma_yz,2.0)); // offset bunch
+          double density_y1 = exp(-0.5*pow(y/sigma_yz,2.0)); // offset bunch
           double density_y2 = density_y1; // fixed bunch
 
-          double d_luminosity_ = (luminosity_normalization_
-              *(density_y1 * density_x1 * density_blue_z) // bunch 1
+          // Not normalized
+          double d_luminosity_ = (
+              (density_y1 * density_x1 * density_blue_z) // bunch 1
               *(density_y2 * density_x2 * density_yell_z) // bunch 2
               ); // this is the summed value
           //std::cout << d_luminosity_ << std::endl;
@@ -1012,59 +996,34 @@ int HourglassSimulation::SaveFigures() {
   gErrorIgnoreLevel = kWarning;
   std::stringstream root_out_name;
   std::stringstream config_out_name;
-  std::stringstream pdf_out_name;
-
 
   if(save_all) {
     root_out_name   << save_directory_ << "/" << save_file_stub_ <<  "_runs_" << how_many_runs << ".root";
-    pdf_out_name    << save_directory_ << "/" << save_file_stub_ <<  "_runs_" << how_many_runs << ".pdf";
     config_out_name << save_directory_ << "/" << save_file_stub_ <<  "_runs_" << how_many_runs << "_final.conf";
   } else {
     root_out_name   << save_directory_ << "/" << save_file_stub_ << ".root";
-    pdf_out_name    << save_directory_ << "/" << save_file_stub_ << ".pdf";
     config_out_name << save_directory_ << "/" << save_file_stub_ << "_final.conf";
   }
 
-  std::string out_file_name = pdf_out_name.str() + "[";
-  TCanvas* booklet = new TCanvas("booklet","BBC Efficiency Plots");
   TFile* root_out = new TFile(root_out_name.str().c_str(), "RECREATE");
-  booklet->Print(out_file_name.c_str());
   std::string TH1F_type = "TH1F";
-  std::string TCanvas_type = "TCanvas";
   std::cout << "Saving figures to: " << save_directory_ << "/" << save_file_stub_ << "*" << std::endl;
   for(auto plot_i = save_registry_.begin(); plot_i != save_registry_.end(); ++plot_i) {
     auto draw_obj = *plot_i;
     if(!draw_obj) continue;
     root_out->cd();
     draw_obj->Write();
-    if(!draw_obj) continue;
-    TCanvas* c = new TCanvas();
-    if(TH1F_type.compare(draw_obj->ClassName()) == 0){
-      c->cd();
-      ((TH1F*)draw_obj)->DrawCopy();
-      c->Print(pdf_out_name.str().c_str());
-    } else if (TCanvas_type.compare(draw_obj->ClassName()) == 0) {
-      ((TCanvas*)draw_obj)->Print(); 
-    } else {
-      c->cd();
-      draw_obj->Draw();
-      c->Print(pdf_out_name.str().c_str());
-    }
-    delete c;
   }
-  out_file_name = pdf_out_name.str() + "]";
-  booklet->Print(out_file_name.c_str());
   root_out->Write();
   root_out->Close();
   if(root_out) delete root_out;
-  delete booklet;
   gErrorIgnoreLevel = kInfo;
-
   std::ofstream config_out(config_out_name.str().c_str());
   for(auto i = config_.par_.begin(); i != config_.par_.end(); ++i) {
     auto conf_name = i->first;
     auto conf_val  = i->second;
     config_out << conf_name << " " << conf_val << std::endl;
   }
+  config_out.close();
   return 0;
 }

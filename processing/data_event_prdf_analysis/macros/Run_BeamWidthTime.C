@@ -6,26 +6,26 @@ int Run_BeamWidthTime(
   const std::string& vernierAnalysisLibrary = "libVernierTimeAnalysis.so") 
 {
   gSystem->Load(vernierAnalysisLibrary.c_str());
-  std::stringstream run;
-  std::stringstream file;
+  char run [256];
+  char file[256];
   if( bunch_index >= 0 && bunch_index < 120) {
-    run.str("");
-    file.str("");
-    run << run_number[run_index] << "_bunch_" << bunch_index;
-    file << scaler_file_bunch_stub[run_index] << bunch_index << ".txt";
+    sprintf(run,"%s_bunch_%d",run_number[run_index].c_str(),bunch_index);
+    printf("%s\n",run);
+    sprintf(file,"%s_%d.txt",scaler_file_bunch_stub[run_index].c_str(),bunch_index);
+    printf("%s\n",file);
   } else {
-    run.str("");
-    file.str("");
-    run << run_number[run_index];
-    file << scaler_file[run_index]; 
+    sprintf(run,"%s",run_number[run_index].c_str());
+    printf("%s\n",run);
+    sprintf(file,"%s",scaler_file[run_index].c_str());
+    printf("%s\n",file);
   }
   BeamWidthTime bws;
   bws.Init(
-      run.str(),
+      run,
       bpm_file[run_index],
       relative_time_step_boundaries[run_index],
       epoch_step_boundaries[run_index], 
-      file.str(),
+      file,
       planned_beam_steps[run_index]
       );
   bws.Run();

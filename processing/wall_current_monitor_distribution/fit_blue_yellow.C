@@ -76,6 +76,22 @@ Double_t g3y_range[7][2] =
   {120.,170.}
 };
 
+/* 
+ * g{1,2,3}_{b,y} : gaussian to fit the {b}lue or {y}ellow beam. {1,2,3} are
+ * indicies which refer to gaussians from left to right, i.e., a left gaussian
+ * {1}, a central gaussian {2}, and a right gaussian {3}.
+ *
+ * Each gaussian is fit the the respective portion of the WCM spectrum, with
+ * ranges defined in the arrays labeled g{1,2,3}{b,y}_range arrays. These arrays
+ * are indexed as [GAUSSIAN_PARAMETER_INDEX][RANGE_BOUNDARIES], such that
+ * for parameter index 1, the min and max range are accessed as follows:
+ * min: [1][0], max:[1][1] (second index changes)
+ *
+ * The individual gaussians are fit to the wcm spectrum, and then those
+ * parameters are used to seed a total triple-gaussian function.
+ *
+ */
+
 void fit_blue_yellow(int index = 0){
   const int run_index = index;
   std::string in_tfile_name = "wcm_dists.root";
@@ -151,4 +167,5 @@ void fit_blue_yellow(int index = 0){
   simple_gaus_blue->Write();
   simple_gaus_yell->Write();
   f_out->Write();
+  std::cout << "Fits saved to: " << out_file_name << std::endl;
 }
