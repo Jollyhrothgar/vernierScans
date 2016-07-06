@@ -74,7 +74,7 @@ HourglassSimulation::HourglassSimulation() {
 }
 
 HourglassSimulation::~HourglassSimulation() {
- // delete stuff properly here
+  // delete stuff properly here
 }
 
 int HourglassSimulation::InitSpacetime() {
@@ -170,6 +170,9 @@ int HourglassSimulation::InitConfig() {
   sc_mu_zr    = mu_zr   *scale; // applying constants in lumi calculation
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
 
+  //Simulate more statistics to get a good convergence.
+  count_norm = count_norm*1000;
+
   // Simulation only handles X-Z crossing angle. We must transform all scans
   // which don't involve displacements in X to the appropriate coordinate frame.
   if (fabs(xoff) < 0.001) {
@@ -179,7 +182,7 @@ int HourglassSimulation::InitConfig() {
     sigma_x = sigma_y;
     sigma_y = temp_sigma;
   }
-  
+
 
   return 0;
 }
@@ -189,6 +192,7 @@ int HourglassSimulation::InitFromConfig(const std::string& config_file) {
   // in case for whatever god-forsaken reason you use a config file without all
   // the config parameters...
   config.SetDefaultValues(); 
+
   config.LoadConfigFile(config_file);
   config_ = config;
   InitConfig();
@@ -211,18 +215,31 @@ int HourglassSimulation::Compare() {
     std::string line = par + " " + val;
     config_text->AddText(line.c_str());
   }
+
+  // Normalize simulation to data
+  float counts_dat = zdc_zvertex_dat->GetEntries();
+  float counts_sim = zdc_zvertex_sim->GetEntries();
+  
+   zdc_zvertex_sim->Smooth(6);
+   float scale_bins = counts_dat/counts_sim;
+   for(int i = 0; i < zdc_zvertex_sim->GetNbinsX(); i++){
+     float content = zdc_zvertex_sim->GetBinContent(i);
+     zdc_zvertex_sim->SetBinContent(i,content*scale_bins);
+     zdc_zvertex_sim->SetBinError(i,0);
+   }
+
   config_and_vertex_compare->cd(1);
   config_text->Draw();
   config_and_vertex_compare->cd(2);
   zdc_zvertex_dat->DrawCopy();
-  zdc_zvertex_sim->DrawCopy("same");
+  zdc_zvertex_sim->DrawCopy("same C");
 
   simulation_config_canvas->cd();
   config_text->Draw();
 
   zvertex_comparison_canvas->cd();
   zdc_zvertex_dat->DrawCopy();
-  zdc_zvertex_sim->DrawCopy("same");
+  zdc_zvertex_sim->DrawCopy("same C");
 
   zvertex_comparison_canvas->Update();
   config_and_vertex_compare->Update();
@@ -231,14 +248,24 @@ int HourglassSimulation::Compare() {
   // WW - both histograms are weighted
   // P  - Prints: chi2, ndf, p_value, igood
   // CHI2/NDF - Returns Chi2/NDF instead of p_value
-  chi2_test = zdc_zvertex_dat->Chi2Test(zdc_zvertex_sim,"WW P CHI2/NDF");
+  // Return p-value
+  // chi2_test = zdc_zvertex_sim->Chi2Test(zdc_zvertex_dat,"WW");
+  // chi2_test = zdc_zvertex_dat->KolmogorovTest(zdc_zvertex_sim);
 
   // Generate average residual
   double average_res = 0;
   for(int i = 0; i < zdc_zvertex_dat->GetNbinsX(); i++) {
-    average_res +=  pow(zdc_zvertex_dat->GetBinContent(i) - zdc_zvertex_sim->GetBinContent(i),2.0);
+    double dat_val = zdc_zvertex_dat->GetBinContent(i);
+    double sim_val = zdc_zvertex_sim->GetBinContent(i);
+    double err = zdc_zvertex_dat->GetBinError(i);
+    double difference  = pow(sim_val - dat_val,2.0);
+    if (err > 0.) {
+      difference /= err;
+    }
+    average_res += fabs(difference);
   }
   squares_residual = average_res/(zdc_zvertex_dat->GetNbinsX());
+  std::cout << "RESIDUAL: " << squares_residual << std::endl;
   return 0;
 }
 
@@ -311,22 +338,179 @@ double HourglassSimulation::SmearZVertex(double rand_prob_res, double orig_z){
 }
 
 int HourglassSimulation::RunBruteForce() {
-  /*
+  return 0;
+}
+
+int HourglassSimulation::RunScanFinder(
+    const std::string& compare_file, 
+    float scan_subdivisions = 50.
+    ){
+  // these are for 200GeV Run15 pp running
+  // COLLISIONS/BUNCH CROSSING:  0.435, 0.402, 0.267, 0.126, 0.027, 0.001
+  // BEAM OFFSET (mm)         :  0.0  , 0.01 , 0.025, 0.040, 0.060, 0.090
+
   TGraph* g_mc_guess = new TGraph();
   g_mc_guess->SetName("g_mc_guess" );
   g_mc_guess->SetTitle("Multiple Collisions Guess;Beam Offset;Multiple Collision Rate Per Bunch Crossing");
 
+  // This is obtained from a previous analysis
+  g_mc_guess->SetPoint(0, 0.0  , 0.435);
+  g_mc_guess->SetPoint(1, 0.01 , 0.402);
+  g_mc_guess->SetPoint(2, 0.025, 0.267);
+  g_mc_guess->SetPoint(3, 0.040, 0.126);
+  g_mc_guess->SetPoint(4, 0.060, 0.027);
+  g_mc_guess->SetPoint(5, 0.090, 0.001);
+  g_mc_guess->SetPoint(6, 0.1  , 0.001);
+
+  bool not_converged = true;
+  double mc_center = 0.;
+
+  //Define ranges - these must contain the "true values"
+  if(fabs (xoff) > fabs(yoff)) {
+    mc_center = g_mc_guess->Eval(fabs(xoff));
+  } else {
+    mc_center = g_mc_guess->Eval(fabs(yoff));
+  }
+
+  std::cout <<  "Note, overriding intitial Multiple Collision Rate Guess before running: " 
+    << mc_center << std::endl;
+  multi_coll = mc_center;
+
+  Run(); // Run once to get initial values.
+  Compare();
+  SaveFigures();
+
+  // Divide scan ranges into scan_subdivisions
   double mc_rate_min = mc_center - 0.5*mc_center;
   double mc_rate_max = mc_center + 0.5*mc_center;
-  double mc_rate_mid = (mc_rate_min+mc_rate_max)/2.0;
-  double mc_rate_step = (mc_rate_max - mc_rate_mid)*0.5;
-  double beta_max = beta_star+(beta_star*0.1);
-  double beta_mid = beta_star;
-  double beta_step = (beta_max - beta_mid)*0.5;
-  double angle_max = 0.0025;
-  double angle_mid = 0.0;
-  double angle_step = (angle_max - angle_mid)*0.5;
-  */
+  double mc_rate_step = (mc_rate_max - mc_rate_min)/scan_subdivisions;
+  double beta_max = beta_star+(beta_star*0.2);
+  double beta_min = beta_star-(beta_star*0.2);
+  double beta_step = (beta_max - beta_min)/scan_subdivisions;
+  double angle_max = 0.0025; // rad
+  double angle_min = -0.0025;
+  double angle_step = (angle_max - angle_min)/scan_subdivisions;
+
+  double best_beta = 0.;
+  double best_ang = 0.;
+  double best_residual = 0.;
+  double best_mc = 0.;
+
+  HourglassConfiguration best_config;
+
+  number_of_iterations++;
+  while(not_converged) {
+    bool first_test = true;
+    for(float b = beta_min; b < beta_max; b+=beta_step) {
+      for(float a = angle_min; a < angle_max; a+=angle_step) {
+        for(float m = mc_rate_min; m < mc_rate_max; m+= mc_rate_step) {
+
+          // Here, we set the variables directly
+          std::stringstream update_beta;
+          update_beta << b;
+          std::stringstream update_ang;
+          update_ang << a;
+          std::stringstream update_mc; 
+          update_mc << m;
+
+          config_.ModifyConfigParameter("BETA_STAR",update_beta.str());
+          config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",update_ang.str());
+          config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",update_mc.str());
+
+          update_ang.str("");
+          update_mc.str("");
+          update_beta.str("");
+          
+          // Ensure that the config file, and the internal varialbes are set to the same thing.
+          InitConfig(); 
+
+          // Run a new model after setting the member variables
+          ResetModel();
+          Run();
+          Compare();
+          if(save_all) {
+            SaveFigures();
+          }
+          if(first_test) { 
+            best_beta = beta_star;
+            best_ang = angle_xz;
+            best_residual = squares_residual;
+            best_mc = multi_coll;
+
+            first_test = false;
+            best_config = config_;
+          } else {
+            if(squares_residual < best_residual) {
+              best_beta     = beta_star;
+              best_ang      = angle_xz;
+              best_residual = squares_residual;
+              best_mc       = multi_coll;
+
+              best_config = config_;
+            }
+          }
+        }// mc loop 
+      }//xing angle loop
+    }//beta star loop
+
+    // Redefine the maximum and minimum bounds. Center should be at the best
+    // value of each parameter. 
+    double b_range_upper = fabs(best_beta-beta_max);
+    double b_range_lower = fabs(best_beta-beta_min);
+
+    double a_range_upper = fabs(best_ang-angle_max);
+    double a_range_lower = fabs(best_ang-angle_min);
+
+    double m_range_upper = fabs(best_mc-mc_rate_max);
+    double m_range_lower = fabs(best_mc-mc_rate_min);
+    
+    double new_b_range = (b_range_upper > b_range_lower) ? b_range_lower : b_range_upper;
+    double new_a_range = (a_range_upper > a_range_lower) ? a_range_lower : a_range_upper;
+    double new_m_range = (m_range_upper > m_range_lower) ? m_range_upper : m_range_lower;
+
+    // Redefine ranges
+    beta_min = best_beta - new_b_range;
+    beta_max = best_beta + new_b_range;
+    angle_min = best_ang - new_a_range;
+    angle_max = best_ang + new_a_range;
+    mc_rate_min = best_mc - new_m_range;
+    mc_rate_max = best_mc + new_m_range;
+
+    // Redefine search sizes
+    mc_rate_step = (mc_rate_max - mc_rate_min)*scan_subdivisions;
+    beta_step = (beta_max - beta_min)*scan_subdivisions;
+    angle_step = (angle_max - angle_min)*scan_subdivisions;
+    
+    std::string save_file_stub_orig = save_file_stub_;
+    std::stringstream ss;
+    ss <<  save_file_stub_ 
+      << "_iteration_" <<  std::setfill('0') << std::setw(3) << number_of_iterations;
+    save_file_stub_ = ss.str();
+    SaveFigures();
+    save_file_stub_ = save_file_stub_orig;
+    ss.str("");
+
+    std::cout << "Iteration: " << number_of_iterations << std::endl;
+    std::cout << "Search Variables (beta_star, angle_xz, multi_coll): " 
+      << beta_star << ", " << angle_xz << ", " << multi_coll << std::endl;
+      
+    if(number_of_iterations == 3 ) { 
+      not_converged = false;
+    } 
+    number_of_iterations++;
+  }// while loop
+  std::cout << "Best Parameters: " << std::endl
+    << "best_beta     : " << best_beta     << std::endl
+    << "best_ang      : " << best_ang      << std::endl
+    << "best_residual : " << best_residual << std::endl
+    << "best_mc       : " << best_mc       << std::endl;
+  config_ = best_config;
+  InitConfig();
+  ResetModel();
+  Run();
+  Compare();
+  save_file_stub_ = "scanning_final";
+  SaveFigures();
   return 0;
 }
 
@@ -334,7 +518,7 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
   // these are for 200GeV Run15 pp running
   // COLLISIONS/BUNCH CROSSING:  0.435, 0.402, 0.267, 0.126, 0.027, 0.001
   // BEAM OFFSET (mm)         :  0.0  , 0.01 , 0.025, 0.040, 0.060, 0.090
-  
+
   TGraph* g_mc_guess = new TGraph();
   g_mc_guess->SetName("g_mc_guess" );
   g_mc_guess->SetTitle("Multiple Collisions Guess;Beam Offset;Multiple Collision Rate Per Bunch Crossing");
@@ -350,20 +534,20 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
 
   bool not_converged = true;
   double prev_residual = squares_residual;
-  double prev_chi2     = chi2_test;
+  //double prev_chi2     = chi2_test;
   double mc_center = 0.;
-  
+
   //Define ranges - these must contain the "true values"
   if(fabs (xoff) > fabs(yoff)) {
     mc_center = g_mc_guess->Eval(fabs(xoff));
   } else {
     mc_center = g_mc_guess->Eval(fabs(yoff));
   }
-  
+
   std::cout <<  "Note, overriding intitial Multiple Collision Rate Guess before running: " 
     << mc_center << std::endl;
   multi_coll = mc_center;
-  
+
   Run(); // Run once to get initial values.
   Compare();
   SaveFigures();
@@ -378,7 +562,7 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
   double angle_max = 0.0025;
   double angle_mid = 0.0;
   double angle_step = (angle_max - angle_mid)*0.5;
-  
+
   std::vector<double> v_mc;
   std::vector<double> v_beta;
   std::vector<double> v_angle;
@@ -408,10 +592,10 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
   double curr_mc    = 0.;
 
   std::map<double,HourglassConfiguration> least_squares_map;
-  std::map<double,HourglassConfiguration> chi2_map;
+  //std::map<double,HourglassConfiguration> chi2_map;
 
   least_squares_map[squares_residual] = config_;
-  chi2_map[chi2_test] = config_;
+  //chi2_map[chi2_test] = config_;
 
   number_of_iterations++;
   while(not_converged) {
@@ -420,19 +604,19 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
       for(auto a = v_angle.begin(); a != v_angle.end(); ++a) {
         for(auto m = v_mc.begin(); m != v_mc.end(); ++m) {
           // Here, we set the variables directly
-	  std::stringstream update_beta;
-	  update_beta << *b;
-	  std::stringstream update_ang;
-	  update_ang << *a;
-	  std::stringstream update_mc; 
-	  update_mc << *m;
+          std::stringstream update_beta;
+          update_beta << *b;
+          std::stringstream update_ang;
+          update_ang << *a;
+          std::stringstream update_mc; 
+          update_mc << *m;
           config_.ModifyConfigParameter("BETA_STAR",update_beta.str());
           config_.ModifyConfigParameter("CROSSING_ANGLE_XZ",update_ang.str());
           config_.ModifyConfigParameter("MULTIPLE_COLLISION_RATE",update_mc.str());
 
-	  update_ang.str("");
-	  update_mc.str("");
-	  update_beta.str("");
+          update_ang.str("");
+          update_mc.str("");
+          update_beta.str("");
           InitConfig(); // Ensure that the config file, and the internal varialbes are set to the same thing.
 
           // Run a new model after setting the member variables
@@ -446,11 +630,12 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
             best_beta = beta_star;
             best_ang = angle_xz;
             best_residual = squares_residual;
-            best_chi2 = chi2_test;
+            //best_chi2 = chi2_test;
             best_mc = multi_coll;
             first_test = false;
           } else {
             if(squares_residual < best_residual) {
+            //if(best_chi2 < chi2_test) {
               best_beta     = beta_star;
               best_ang      = angle_xz;
               best_residual = squares_residual;
@@ -506,17 +691,19 @@ int HourglassSimulation::RunRootFinder(const std::string& compare_file) {
     std::cout << "residual  : " << best_residual << std::endl;
 
     double convergence_res  = fabs(best_residual - prev_residual );
-    double convergence_chi2 = fabs(best_chi2     - prev_chi2     );
+    //double convergence_chi2 = fabs(best_chi2     - prev_chi2     );
     std::cout << "Iteration: " << number_of_iterations 
-      << ", Chi2 Convergence: " << convergence_chi2 
+      //<< ", Chi2 Convergence: " << convergence_chi2 
       << ", Residual Convergence: " << convergence_res << std::endl;
     std::cout << "Convergence Variables: chi2_test: " << chi2_test << ", squares_residual: " << squares_residual << std::endl;
     std::cout << "Search Variables (beta_star, angle_xz, multi_coll): " << beta_star << ", " << angle_xz << ", " << multi_coll << std::endl;
-    if(number_of_iterations == 10 ) { // this value is determined experimentally by observing behavior of chi2 vs iteraiton.
+      
+    // this value is determined experimentally by observing behavior of chi2 vs iteraiton.
+    if(number_of_iterations == 15 ) { 
       not_converged = false;
     } else { 
       prev_residual = best_residual;
-      prev_chi2 = best_chi2;
+      //prev_chi2 = best_chi2;
     }
     number_of_iterations++;
   }// while loop
@@ -696,8 +883,10 @@ void HourglassSimulation::GenerateModel() {
           double density_y1 = exp(-0.5*pow(y/sigma_yz,2.0)); // offset bunch
           double density_y2 = density_y1; // fixed bunch
 
-          // Not normalized
-          double d_luminosity_ = (
+          // Need non-constant normalization terms, forget the rest
+          double norm_proxy = 1.0/(sigma_xz*sigma_yz);
+
+          double d_luminosity_ = (norm_proxy*
               (density_y1 * density_x1 * density_blue_z) // bunch 1
               *(density_y2 * density_x2 * density_yell_z) // bunch 2
               ); // this is the summed value
@@ -859,12 +1048,12 @@ int HourglassSimulation::Init(
     const std::string& z_profile_blue, 
     const std::string& z_profile_yell,
     const std::string& fit_file_name
-) {
+    ) {
   InitFromConfig(cfg_file);
   InitSpacetime();
   InitProbabilityVariables();
   CreateCumulativePoissonDistribution();
-  
+
   zdc_zvertex_sim = 
     new TH1F("zdc_zvertex_sim",
         "Z Vertex ZDC Profile Simulation;z vertex;counts",
@@ -920,7 +1109,7 @@ int HourglassSimulation::Init(
   save_registry_.push_back(zvertex_comparison_canvas);
   save_registry_.push_back(simulation_config_canvas);
   save_registry_.push_back(config_and_vertex_compare);
-  
+
   gaus_z_blue = new TGraph();
   gaus_z_blue->SetName("gaus_z_blue");
   gaus_z_blue->SetTitle("gaus_z_blue");
@@ -929,7 +1118,7 @@ int HourglassSimulation::Init(
   gaus_z_yell->SetTitle("gaus_z_yell");
   save_registry_.push_back(gaus_z_blue);
   save_registry_.push_back(gaus_z_yell);
-  
+
   for(int i = 0; i < 3; i++) {
     std::stringstream name_b;
     name_b << "new_model_z_blue_" << i;

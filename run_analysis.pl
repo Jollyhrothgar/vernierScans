@@ -2,8 +2,8 @@
 use strict;
 use warnings;
 
-my $NUMBER_OF_RUNS = 2;
-my $run_index = 1;
+my $NUMBER_OF_RUNS = 6;
+my $run_index = 0;
 
 for($run_index; $run_index < $NUMBER_OF_RUNS; $run_index++) {
   system("root -l -b -q processing/data_event_prdf_analysis/macros/Run_BeamWidthTime.C\'($run_index)\'");

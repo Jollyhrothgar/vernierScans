@@ -29,9 +29,13 @@ int Run_HourglassSimulation(
     case 1:
       sim.RunRootFinder(hourglass_data_file[run_index]);
       break;
+    case 2:
+      sim.RunScanFinder(hourglass_data_file[run_index],5.);
+      break
     default:
       std::cout << "no adequate running mode supplied." << std::endl;
       std::cout << " choose 1 for RootFinder mode" << std::endl;
+      std::cout << " choose 2 for ScanFinder mode" << std::endl;
       std::cout << " choose 0 for Normal Running mode " << std::endl;
   } 
   sim.SaveFigures();

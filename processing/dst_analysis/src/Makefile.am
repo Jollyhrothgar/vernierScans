@@ -45,14 +45,14 @@ testexternals.C:
 
 #rootcint -f $@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $(INCLUDES) $(DEFS) $(CINTFLAGS) $^
 Vernier_Dict.C: \
-  BeamPositionSteps.h \
-  BBCEfficiency.h \
-  BBCRateSteps.h \
-  BeamWidth.h \
-  BeamSeparationData.h \
-  WcmDcctManager.h \
-  VernierTreeVariables.h \
-  VernierLinkDef.h
+ 	 BeamPositionSteps.h \
+ 	 BBCEfficiency.h \
+ 	 BBCRateSteps.h \
+  	BeamWidth.h \
+  	BeamSeparationData.h \
+  	WcmDcctManager.h \
+	VernierTreeVariables.h \
+  	VernierLinkDef.h
 	rootcint -f $@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
 clean-local:

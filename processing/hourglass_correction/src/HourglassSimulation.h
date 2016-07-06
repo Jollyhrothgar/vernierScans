@@ -75,6 +75,14 @@ class HourglassSimulation {
   // simulated z-vertex is plotted on top of the real z-vertex distribution, and
   // the canvas is saved to the registry.
   
+  // RunScanFinder
+  //
+  // Scans over a subrange of potential parameters
+  // selects the best set of parameters from the sub-range
+  // Redefine range over smaller range, centered on the best
+  // parameters
+  int RunScanFinder(const std::string& compare_file, float scan_subdivisions);
+  
   // Run over a range of possible values starting with a close distribution
   int RunBruteForce();
 
