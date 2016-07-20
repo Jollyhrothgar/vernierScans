@@ -1,0 +1,4 @@
+#! /bin/bash 
+cp $MYINSTALL/lib/libVernierHourglass.so ./
+cp $VERNIERROOT/FileManagement.h ./
+cp $VERNIERROOT/processing/hourglass_correction/macros/Run_HourglassSimulation.C ./
