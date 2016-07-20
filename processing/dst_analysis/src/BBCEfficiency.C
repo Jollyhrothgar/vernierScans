@@ -386,7 +386,6 @@ int BBCEfficiency::FitAcceptance(float left_low = -60., float left_high = 0., fl
   Double_t par[6];
   Derivative(trigger_acceptance_, acceptance_first_derivative_);
 
-
   // Needs parameter settings, etc, but we've already successfully fit.
   // left_erf_  = new TF1("left_erf_","[0]+[1]*TMath::Erf((x-[2])/[3])",-60,0);
   // right_erf_ = new TF1("right_erf_","[0]+[1]*TMath::Erf((x-[2])/[3])",0,60);
