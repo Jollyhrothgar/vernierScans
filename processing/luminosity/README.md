@@ -69,7 +69,7 @@ BUNCH_NUMBER <bunch_number> BLUE_IONS <blue_population> YELLOW_IONS <yellow_popu
 </pre>
 
 With 0 $\leq$ bunch_number < 120, and ion populations to be real beam ion
-populations (on order of $10^10$).
+populations (on order of $10^{10}$).
 
 ## Efficiency information
 Efficiencies are extracted from:
