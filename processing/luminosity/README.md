@@ -28,6 +28,12 @@ https://github.com/Jollyhrothgar/vernierScans/processes.
 
 This analysis assumes a fixed bunch crossing frequency of 9.36 MHz.
 
+## Corrective Factors
+
+Corrective factors are obtained by finding the optimum values for $\beta^*$ and
+$\theta_{xing}$ and calculating luminosity with and without these values. This
+is currently planned to be done in mathematica.
+
 ## Beam Width Data
 
 All bunches are assumed to have the same beam width in the transverse
@@ -40,10 +46,40 @@ vernierScans/processing/dst_analysis/macros/Run_BeamWidth.C
 
 Which contains:
 
-* Maximum overlap BBC Rate
-* Horizontal Beam Width
-* Vertical Beam Width
+<pre>
+# Run 359711 Beam Width
+BEAM_WIDTH_H 2.5e-5
+BEAM_WIDTH_V 2.5e-5
+BBC_MAX_RATE 350000 
+</pre>
 
-## Corrective Factors
+The units of beam width are meters. The units of the BBC_MAX_RATE are Hz.
 
-Corrective factors are obtained by finding the optimum values for 
+## WCM Data
+
+The individual bunch populations will be obtained from:
+
+vernierScans/processing/dst_analysis/Run_WcmDcctManager.C
+
+Each file will contain the following data:
+
+<pre>
+# Run 359711 Beam Ion Population
+BUNCH_NUMBER <bunch_number> BLUE_IONS <blue_population> YELLOW_IONS <yellow_population>
+</pre>
+
+With 0 $\leq$ bunch_number < 120, and ion populations to be real beam ion
+populations (on order of $10^10$).
+
+## Efficiency information
+Efficiencies are extracted from:
+
+vernierScans/processing/dst_analysis/macros/Run_BBCEfficiency.C 
+
+And will contain:
+<pre>
+# Run 359711 BBC Efficiency
+BBC_EFFICIENCY 0.4
+</pre>
+
+Where BBC_EFFICIENCY is unitless and between 0 and 1.
