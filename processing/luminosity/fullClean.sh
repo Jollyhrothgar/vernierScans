@@ -1,0 +1,23 @@
+#! /bin/sh
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/config.status
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/Makefile
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/libtool
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/config.log
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/testexternals.C
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/DictOutput.h
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/DictOutput.cxx
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/.deps
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/build/.libs
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/aclocal.m4
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/autom4te.cache
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/missing
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/install-sh
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/config.sub
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/config.guess
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/depcomp
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/configure
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/ltmain.sh
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/Makefile.in
+rm -rfv /gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/luminosity/src/compile
+rm -vf lib/*
+rm -vf /direct/phenix+u/workarea/beaumim/install/lib/libVernierLuminosity*
