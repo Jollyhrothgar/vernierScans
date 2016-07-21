@@ -1,5 +1,7 @@
 # Luminosity Calculation
 
+Note: to view math properly, the extension 'tex everywhere'
+
 This project template was generated with the module:
 https://github.com/Jollyhrothgar/root_project_generator
 
@@ -11,7 +13,8 @@ https://github.com/Jollyhrothgar/vernierScans/processes.
 
 # Equations
 
-$L = f_{bunch}$
+$L = f_{bunch} K_{\beta^*}K_{\theta_{xing}}\Sum_{i=0}^{N_{bunches}}
+{{N_{b_i}N_{y_i}}\over{2\pi\sigma_x\sigma_y}}$
 
 # Description of the Required data
 
