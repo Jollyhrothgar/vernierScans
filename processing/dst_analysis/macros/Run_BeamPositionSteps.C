@@ -14,4 +14,5 @@ void Run_BeamPositionSteps(
   bpm.Run();
   std::cout << bpm.GetCentralStepTime(3) << std::endl;
   bpm.MakeFigures(plots_dir);
+  bpm.SaveBeamPositionData("");
 }

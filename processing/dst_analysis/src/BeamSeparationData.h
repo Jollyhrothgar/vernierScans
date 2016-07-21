@@ -3,8 +3,14 @@
 struct BeamSeparationData{
   double x; /** horizontal separation */
   double y; /** vertical separation */ 
-  double x_err; /* uncertainty in x */
-  double y_err; /* uncertainty in y */
+  double x_err; /* associated uncertainty in x */
+  double y_err; /* associated uncertainty in y */
+
+  double x_avg; /* horizontal separation calculated from average beam pos */
+  double y_avg; /* vertical separation calculated from avg beam pos */
+  double x_avg_err; /* associated uncertainty of x_avg */
+  double y_avg_err; /* associated uncertainty of y_avg */
+
 
   void Reset(){
     x = 0.;

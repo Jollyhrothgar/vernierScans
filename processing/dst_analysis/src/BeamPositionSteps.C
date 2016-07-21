@@ -107,6 +107,8 @@ int BeamPositionSteps::LoadBpmData() {
       beam_separation_data_[time].Reset();
       beam_separation_data_[time].x = bp.hSeparation;
       beam_separation_data_[time].y = bp.vSeparation;
+      beam_separation_data_[time].x_avg = bp.hSeparationAvg;
+      beam_separation_data_[time].y_avg = bp.vSeparationAvg;
     }
   } else { 
     std::cout << "  could not open " << bpmDataFileName << std::endl;
@@ -192,9 +194,9 @@ int BeamPositionSteps::BeamPositionLookup(double time_lookup, double rejection_t
     return 1;
   }
   
-  // Now we may extract / intripolate the beam position 
-  // We want to use data on either side of the actual lookup value, in the case where that value
-  // is not directly found.
+  // Now we may extract / intripolate the beam position We want to use data on
+  // either side of the actual lookup value, in the case where that value is
+  // not directly found.
   auto bpm_current = bpmData.find(nearest_index);
   auto bpm_first = bpm_current;
   auto bpm_second  = bpm_current;
@@ -203,13 +205,17 @@ int BeamPositionSteps::BeamPositionLookup(double time_lookup, double rejection_t
     x_sep = bpmData[nearest_index].hSeparation;
     y_sep = bpmData[nearest_index].vSeparation;
     return 0;
-  } else { // Intripolate value of bpm using weighed average between two bordering points.
-    // We look at the nearest index (and therefore also, the next nearest index)
-    if(time_lookup_value < nearest_index ){ // take nearest_index and next lower index as bounds
+  } else { 
+    // Intripolate value of bpm using weighed average between two
+    //bordering points.  We look at the nearest index (and therefore also, the
+    //next nearest index)
+    if(time_lookup_value < nearest_index ){ 
+      // take nearest_index and next lower index as bounds
       bpm_first--;
     } else { // take nearest_index and next higher index as bounds
       bpm_second++;
     }
+
     // linear extrapolation for h and v separation
     double time_window = double(bpm_second->first) - double(bpm_first->first);
     double h_sep_second = bpm_second->second.hSeparation;
@@ -303,27 +309,39 @@ int BeamPositionSteps::DrawScan() {
 
 int BeamPositionSteps::MakeSteps() {
   time_t start_time = bpmData.begin()->first;
-  TH1F* average_rms = new TH1F("average_rms","Average Rms of all BPM data",20,-3,3);
-  plot_registry_.push_back(average_rms);
+  TH1F* total_linear_extrap_rms = new TH1F("total_linear_extrap_rms","Average Linear Extrapolation Rms of all BPM data",20,-3,3);
+  plot_registry_.push_back(total_linear_extrap_rms);
+  TH1F* average_bpm_rms = new TH1F("average_bpm_rms","Average RMS of BPM Sector 7 and 8",20,-3,3);
+  plot_registry_.push_back(average_bpm_rms);
+
   int step_i = 0;
   for(auto i = steps.begin(); i != steps.end(); ++i) {
     // optimize this later - currently, the file is small, we can do 
     // an exhaustive search.
     std::vector<float> x_points;
     std::vector<float> y_points;
+    std::vector<float> x_points_avg;
+    std::vector<float> y_points_avg;
     for( auto bpm = bpmData.begin(); bpm != bpmData.end(); ++bpm) {
       time_t time = bpm->second.time - start_time;
 
       if( time >= i->first && time <= i->second ) {
         x_points.push_back(bpm->second.hSeparation);
         y_points.push_back(bpm->second.vSeparation);
+        x_points_avg.push_back(bpm->second.hSeparationAvg);
+        y_points_avg.push_back(bpm->second.vSeparationAvg);
       }
     }
     std::stringstream x_title;
     x_title << "bpm_x_step_" << step_i;
     std::stringstream y_title;
     y_title << "bpm_y_step_" << step_i;
+    std::stringstream x_title_avg;
+    std::stringstream y_title_avg;
+    x_title_avg << x_title.str() << "_avg";
+    y_title_avg << y_title.str() << "_avg";
 
+    // Linear Extrapolation BPM Data
     TH1F* h_x = new TH1F(
         x_title.str().c_str(),
         x_title.str().c_str(),
@@ -340,26 +358,57 @@ int BeamPositionSteps::MakeSteps() {
         *std::max_element(y_points.begin(),y_points.end())+1
         );
     plot_registry_.push_back(h_y);
+    
+    // Average of BPM Station 7 and 8 Method
+    TH1F* h_x_avg = new TH1F(
+        x_title_avg.str().c_str(),
+        x_title_avg.str().c_str(),
+        3,
+        *std::min_element(x_points_avg.begin(),x_points_avg.end())-1,
+        *std::max_element(x_points_avg.begin(),x_points_avg.end())+1
+        );
+    plot_registry_.push_back(h_x_avg);
+    TH1F* h_y_avg = new TH1F(
+        y_title_avg.str().c_str(),
+        y_title_avg.str().c_str(),
+        3,
+        *std::min_element(y_points_avg.begin(),y_points_avg.end())-1,
+        *std::max_element(y_points_avg.begin(),y_points_avg.end())+1
+        );
+    plot_registry_.push_back(h_y_avg);
 
     for(unsigned int point_i = 0; point_i < x_points.size(); point_i++) {
       h_x->Fill(x_points[point_i]);
       h_y->Fill(y_points[point_i]);
+      h_x_avg->Fill(x_points_avg[point_i]);
+      h_y_avg->Fill(y_points_avg[point_i]);
     }
 
-    // now we have in range steps - we can use overall average in RMS to determine uncertainty in separation
+    // now we have in range steps - we can use overall average in RMS to
+    // determine uncertainty in separation
     BeamStep vernierScanStep;
     vernierScanStep.xSeparation = h_x->GetMean();
     vernierScanStep.ySeparation = h_y->GetMean();
     vernierScanStep.xSeparationRMS = h_x->GetRMS();
     vernierScanStep.ySeparationRMS = h_y->GetRMS();
-    average_rms->Fill(h_x->GetRMS());
-    average_rms->Fill(h_y->GetRMS());
+
+    // Using the average BPM measurement
+    vernierScanStep.xSeparationAvg = h_x_avg->GetMean();
+    vernierScanStep.ySeparationAvg = h_y_avg->GetMean();
+    vernierScanStep.xSeparationAvgRMS = h_x_avg->GetRMS();
+    vernierScanStep.ySeparationAvgRMS = h_y_avg->GetRMS();
+
+    total_linear_extrap_rms->Fill(h_x->GetRMS());
+    total_linear_extrap_rms->Fill(h_y->GetRMS());
+    average_bpm_rms->Fill(h_x_avg->GetRMS());
+    average_bpm_rms->Fill(h_y_avg->GetRMS());
 
     vernierScanBPMSteps.push_back(vernierScanStep);
     step_i++;
   }
-  bpm_global_rms_ = average_rms->GetMean();
-  average_rms->Draw();
+  bpm_global_rms_ = total_linear_extrap_rms->GetMean();
+  bpm_global_average_rms_ = average_bpm_rms->GetMean();
+  total_linear_extrap_rms->Draw();
   std::cout << "BPM DATA STEPS: " << vernierScanBPMSteps.size() << std::endl;
   return 0;
 }
@@ -416,22 +465,38 @@ time_t BeamPositionSteps::GetTimeOffset() {
   return bpmData.begin()->first;
 }
 
-std::map<long int, BeamSeparationData> BeamPositionSteps::GetBeamSeparationData() {
-  for(auto i = beam_separation_data_.begin(); i!= beam_separation_data_.end(); ++i){
+std::map<long int, BeamSeparationData>
+BeamPositionSteps::GetBeamSeparationData() {
+  for(auto i = beam_separation_data_.begin(); 
+      i!= beam_separation_data_.end(); 
+      ++i){
     BeamSeparationData& bpm = i->second;
     bpm.x_err = bpm_global_rms_;
     bpm.y_err = bpm_global_rms_;
+    bpm.x_avg_err = bpm_global_average_rms_;
+    bpm.y_avg_err = bpm_global_average_rms_;
   }
   return beam_separation_data_;
 }
 
+// Maybe use later for BPM data for luminosity?
+int BeamPositionSteps::SaveBeamPositionData(const std::string& out_file_name){
+  for(auto i = vernierScanBPMSteps.begin();
+      i != vernierScanBPMSteps.end();
+      ++i){
+    BeamStep bs = *i;
+    std::cout << bs.xSeparation 
+      << ", " << bs.xSeparationRMS 
+      << ", " << bs.ySeparation 
+      << ", " << bs.ySeparationRMS
+      << std::endl;
+  }
+  return 0;
+}
+
 int BeamPositionSteps::MakeFigures(const std::string& figure_output_dir) {
   std::string tfile_name = figure_output_dir + "/" + runNumber + "_BeamPositionPlots.root"; 
-  std::string pdf_name   = figure_output_dir + "/" + runNumber + "_BeamPositionPlots.pdf";
-  std::string out_file_name = pdf_name + "[";
-  TCanvas* booklet = new TCanvas("booklet","BeamPositionSteps Plots");
   TFile* root_out = new TFile(tfile_name.c_str(), "RECREATE");
-  booklet->Print(out_file_name.c_str());
   for(auto plot_i = plot_registry_.begin(); plot_i != plot_registry_.end(); ++plot_i) {
     auto draw_obj = *plot_i;
     //std::string name = draw_obj->GetName();
@@ -443,13 +508,84 @@ int BeamPositionSteps::MakeFigures(const std::string& figure_output_dir) {
     TCanvas* c = new TCanvas();
     c->cd();
     draw_obj->Draw();
-    c->Print(pdf_name.c_str()); // ->GetName() returns const char*
     delete c;
   }
-  out_file_name = pdf_name + "]";
-  booklet->Print(out_file_name.c_str());
+  int step_counter = 0;
+
+  // Useless graphs from when I thought that maybe the difference in the
+  // average BPM measurement yielded something different than the linear
+  // extrapolation. It doesn't.
+  TGraphErrors* g_x_linear = new TGraphErrors();
+  g_x_linear->SetName("g_x_linear");
+  g_x_linear->SetTitle(";step;displacement");
+  TGraphErrors* g_y_linear = new TGraphErrors();
+  g_y_linear->SetName("g_y_linear");
+  g_y_linear->SetTitle(";step;displacement");
+  TGraphErrors* g_x_avg = new TGraphErrors();
+  g_x_avg->SetName("g_x_avg");
+  g_x_avg->SetTitle(";step;displacement");
+  TGraphErrors* g_y_avg = new TGraphErrors();
+  g_y_avg->SetName("g_y_avg");
+  g_y_avg->SetTitle(";step;displacement");
+
+  for(auto i = vernierScanBPMSteps.begin(); i != vernierScanBPMSteps.end(); ++i){
+    BeamStep bpm = *i;
+    g_x_linear->SetPoint(
+        step_counter,
+        step_counter,
+        bpm.xSeparation
+    );
+    g_y_linear->SetPoint(
+        step_counter,
+        step_counter,
+        bpm.ySeparation
+    );
+    g_x_avg->SetPoint(
+        step_counter,
+        step_counter,
+        bpm.xSeparationAvg
+    );
+    g_y_avg->SetPoint(
+        step_counter,
+        step_counter,
+        bpm.ySeparationAvg
+    );
+    g_x_linear->SetPointError(
+        step_counter,
+        0,
+        bpm.xSeparationRMS
+    );
+    g_y_linear->SetPointError(
+        step_counter,
+        0,
+        bpm.ySeparationRMS
+    );
+    g_x_avg->SetPointError(
+        step_counter,
+        0,
+        bpm.xSeparationAvgRMS
+    );
+    g_y_avg->SetPointError(
+        step_counter,
+        0,
+        bpm.ySeparationAvgRMS
+    );
+    step_counter++;
+  }
+  g_x_linear->SetMarkerColor(kRed);
+  g_y_linear->SetMarkerColor(kGreen);
+  g_x_avg->SetMarkerColor(kRed+3);
+  g_y_avg->SetMarkerColor(kGreen+3);
+  g_x_linear->SetMarkerStyle(kFullCircle);
+  g_y_linear->SetMarkerStyle(kFullCircle);
+  g_x_avg->SetMarkerStyle(kFullCircle);
+  g_y_avg->SetMarkerStyle(kFullCircle);
+  g_x_linear->Write();
+  g_y_linear->Write();
+  g_x_avg->Write();
+  g_y_avg->Write();
+
   root_out->Write();
   root_out->Close();
-  delete booklet;
   return 0;
 }

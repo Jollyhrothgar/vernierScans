@@ -797,6 +797,7 @@ int BeamWidthTime::MakePlannedStepsTable(const std::string& out_dir, const std::
   return 0;
 }
 
+
 int BeamWidthTime::SaveBeamWidthData(const std::string& out_dir) {
   std::stringstream out_file_name;
   out_file_name << out_dir << "/"  << run_number_ << "_BeamWidthData.txt";
