@@ -19,7 +19,7 @@ https://github.com/Jollyhrothgar/vernierScans/processes.
 \end{equation}
 
 \begin{equation}
-$\sigma_{BBC} = {{R_{BBC}}\over{\epsilon_{BBC}\mathcal{L}}}
+\sigma_{BBC} = {{R_{BBC}}\over{\epsilon_{BBC}\mathcal{L}}}
 \end{equation}
 
 # Description of the Required data
