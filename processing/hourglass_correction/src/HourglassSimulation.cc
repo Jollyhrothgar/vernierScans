@@ -744,7 +744,7 @@ int HourglassSimulation::Run() {
   return 0;
 }
 
-int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std::string& yell_f_name, const std::string& fit_file_name) {
+int HourglassSimulation::LoadZProfile(const std::string& fit_file_name){
   TFile* f = new TFile(fit_file_name.c_str(),"READ");
   if(!f) {
     std::cout << "was not able to open the file containing wcm fits! You will not be able to run ::GenerateModel!" << std::endl;
@@ -760,6 +760,10 @@ int HourglassSimulation::LoadZProfile(const std::string& blue_f_name, const::std
   save_registry_.push_back(f_z_profile_blue_);
   save_registry_.push_back(f_z_profile_yell_);
   std::cout << "loaded z profile" << std::endl;
+  return 0;
+}
+
+int HourglassSimulation::LoadZHist(const std::string& profile_file, const std::string& run_number){
   return 0;
 }
 
@@ -804,6 +808,127 @@ int HourglassSimulation::CreateCumulativePoissonDistribution() {
   }
   std::cout << "done accumulating Poisson distbn." <<std::endl;
   return 0;
+}
+
+void HourglassSimulation::GenerateDataModel(){
+  std::cout << "Using fitted WCM Data Model" << std::endl;
+  double sum_T;
+  double add_T;
+  // Factor of sqrt(2) is coming from the fact that we are looking at the RMS
+  // value of simga_x and sigma_y (which in reality change as a function of z)
+  double sigma_xstar = sigma_x/sqrt(2.); 
+  double sigma_ystar = sigma_y/sqrt(2.);
+
+  double xing_angle = angle_xz;
+  double local_sigma_xstar = sigma_xstar;
+  double local_sigma_ystar = sigma_ystar;
+  double beam_offset = xoff;
+  double half_angle = xing_angle/2.0;
+  double cos_half_angle = cos(xing_angle/2.0);
+  if(fabs(yoff) > 0.) {
+    xing_angle = angle_yz;
+    local_sigma_xstar = sigma_ystar;
+    local_sigma_ystar = sigma_xstar;
+    beam_offset = yoff;
+    xing_angle = angle_yz;
+    half_angle = xing_angle/2.0;
+    cos_half_angle = cos(xing_angle/2.0);
+  }
+
+  sum_T = 0.0;
+  luminosity_tot_ = 0.0;
+
+  // Calculate Luminosity
+  for(int ct=0; ct<N_bin_t; ct++) {
+    double t = t_position_[ct];
+    add_T = 0.0;
+    z_norm_[ct] = 0.0;
+    for(int cz=0; cz<N_bin_z; cz++) {
+      double z = z_position_[cz];
+      //corrected for xing_angle dependence, 2015
+      double sigma_xz = local_sigma_xstar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
+
+      //corrected for xing_angle dependence, 2015
+      double sigma_yz = local_sigma_ystar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
+
+      double density_blue_z = fabs(f_z_profile_blue_->Eval(z*cos_half_angle-vel*t));
+      double density_yell_z = fabs(f_z_profile_yell_->Eval(z*cos_half_angle+vel*t));
+
+      if( ! new_fit_model_run ){
+        if(ct == 40){ // set for t == 0
+          gaus_z_blue->SetPoint( gaus_z_blue->GetN(), z, density_blue_z);
+          gaus_z_yell->SetPoint( gaus_z_yell->GetN(), z, density_yell_z);
+        }
+
+        if(!new_model_run && !simple_gaus_model_run ) {
+          if(ct == 35){
+            new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
+            new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
+          }
+          if(ct == 40){
+            new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
+            new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
+          }
+          if(ct == 45){
+            new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
+            new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
+          }
+        }
+      }
+
+      for(int cx=0; cx<N_bin_x; cx++) {
+        double x = x_position_[cx];
+        double density_x1 = exp(-0.5*pow((x*cos_half_angle-beam_offset+half_angle*z)/sigma_xz, 2.0)); // only one bunch is offset
+        double density_x2 = exp(-0.5*pow((x*cos_half_angle            -half_angle*z)/sigma_xz, 2.0));
+        for(int cy=0; cy<N_bin_y; cy++) { 
+          double y = y_position_[cy];
+          double density_y1 = exp(-0.5*pow(y/sigma_yz,2.0)); // offset bunch
+          double density_y2 = density_y1; // fixed bunch
+
+          // Need non-constant normalization terms, forget the rest
+          double norm_proxy = 1.0/(sigma_xz*sigma_yz);
+
+          double d_luminosity_ = (norm_proxy*
+              (density_y1 * density_x1 * density_blue_z) // bunch 1
+              *(density_y2 * density_x2 * density_yell_z) // bunch 2
+              ); // this is the summed value
+          //std::cout << d_luminosity_ << std::endl;
+          if(d_luminosity_ >= 0.0) {
+            luminosity_tot_ += d_luminosity_; // this is literally just the value of the integral
+            add_T += d_luminosity_; // this is the same thing as luminosity_tot_?
+          } else {
+            std::cout << "Luminosity integral generated negative value, it should not be" 
+              << std::endl;
+            break;
+          }
+          how_many_things++;
+        }//end loop on y
+      }//end loop on x
+      gaussian_dist_[ct][cz] = luminosity_tot_; // storing prob for 2-D z-t grid summed over x,y
+    }//end loop on z 
+    z_norm_[ct] = add_T;
+    sum_T += add_T;
+    t_dist_[ct] = sum_T;//storing prob in t with z-prob summed over
+  }//end loop on t
+  // should match our actual luminosity when parameters are configured
+  // correctly.
+  std::cout << "Luminosity = " << luminosity_tot_ << std::endl;
+  std::cout << "done accumulating Gaussian distbns." << std::endl;
+
+  if( ! new_fit_model_run ) {
+    gaus_compare = new TCanvas("gaus_compare","Comparing Real WCM Dist to Gaus Model",800,1200);
+    gaus_compare->Divide(1,2);
+    gaus_compare->cd(1);
+    gaus_z_blue->SetLineWidth(2);
+    gaus_z_yell->SetLineWidth(2);
+    gaus_z_blue->SetLineColor(kBlue+2);
+    gaus_z_yell->SetLineColor(kOrange+2);
+    gaus_z_blue->Draw("AL");
+    gaus_z_yell->Draw("L");
+    save_registry_.push_back(gaus_compare);
+  }
+  new_fit_model_run = true;
+
 }
 
 // This is currently the only method aside from Amaresh's method which handles
@@ -1141,7 +1266,7 @@ int HourglassSimulation::Init(
   save_registry_.push_back(config_text);
 
   std::cout << "Done creating plots." << std::endl;
-  LoadZProfile(z_profile_blue, z_profile_yell,fit_file_name);
+  LoadZProfile(fit_file_name);
   CreateCumulativePoissonDistribution();
   first_init = true;
   delete data;

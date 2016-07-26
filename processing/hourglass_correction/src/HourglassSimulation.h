@@ -191,6 +191,7 @@ class HourglassSimulation {
   bool amaresh_model_run;
   bool new_model_run;
   void GenerateModel();
+  void GenerateDataModel(); // May return to using wcm profile directly.
   bool new_fit_model_run;
   bool simple_gaus_model_run;
   int ResetModel();
@@ -225,7 +226,8 @@ class HourglassSimulation {
   // You can add an argument to this member function to make it general, but as
   // this is my code, and I'm trying to get results without messing around with
   // flexibility, the names are hardcoded.
-  int LoadZProfile(const std::string& blue_f_name, const std::string& yell_f_name, const std::string& fit_file_name);
+  int LoadZProfile(const std::string& fit_file_name);
+  int LoadZHist(const std::string& profile_file, const std::string& run_number);
   std::map<double,double> z_profile_blue_;
   std::map<double,double> z_profile_yell_;
   TF1* f_z_profile_blue_;
