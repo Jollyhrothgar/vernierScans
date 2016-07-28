@@ -19,6 +19,7 @@ double ToCentimeters( double nanoseconds ) {
   return nanoseconds*1.0e-9*2.998e+10;
 }
 
+
 int LoadFileList(const std::string& list, std::vector<std::pair<std::string,std::string> > &v ){
   std::ifstream in_list(list.c_str());
   std::string line;
@@ -81,6 +82,7 @@ int main( int argc, char** argv ) {
     std::vector<double>y;
     LoadWCMProfile(in_distribution,x,y);
     float bin_w = x[1] - x[0];
+
     TH1F* profile = new TH1F(
         profile_name.c_str(),
         profile_name.c_str(),
