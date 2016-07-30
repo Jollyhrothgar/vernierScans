@@ -17,7 +17,9 @@ int Run_HourglassSimulation(
       hourglass_data_file[run_index],
       z_profile_density_blue[run_index],
       z_profile_density_yellow[run_index],
-      z_profile_fit_file[run_index]
+      z_profile_fit_file[run_index],
+      "/gpfs02/phenix/spin/spin2/beaumim/vernierScans/processing/wall_current_monitor_distribution/simul_hist_profile/out.root",
+      run_number[run_index]
       );
   sim.SetSaveDirectory(plot_output);
   sim.SetSaveAll();

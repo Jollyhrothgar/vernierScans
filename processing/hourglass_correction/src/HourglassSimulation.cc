@@ -171,7 +171,7 @@ int HourglassSimulation::InitConfig() {
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
 
   //Simulate more statistics to get a good convergence.
-  count_norm = count_norm*1000;
+  count_norm = 100000;
 
   // Simulation only handles X-Z crossing angle. We must transform all scans
   // which don't involve displacements in X to the appropriate coordinate frame.
@@ -254,7 +254,8 @@ int HourglassSimulation::Compare() {
 
   // Generate average residual
   double average_res = 0;
-  for(int i = 0; i < zdc_zvertex_dat->GetNbinsX(); i++) {
+  // Compare central region ignore weird end point of simulation.
+  for(int i = 1; i < zdc_zvertex_dat->GetNbinsX()-2; i++) {
     double dat_val = zdc_zvertex_dat->GetBinContent(i);
     double sim_val = zdc_zvertex_sim->GetBinContent(i);
     double err = zdc_zvertex_dat->GetBinError(i);
@@ -720,7 +721,8 @@ int HourglassSimulation::Run() {
   time_tracker[0] = GetTime().count();
   std::cout << "phase " << 0 << std::endl;
   ShowConfig();
-  GenerateModel();
+  //GenerateModel();
+  GenerateDataModel();
   time_tracker[1] = GetTime().count();
   std::cout << "phase " << 1 << std::endl;
   GenerateZVertexProfile();
@@ -764,6 +766,13 @@ int HourglassSimulation::LoadZProfile(const std::string& fit_file_name){
 }
 
 int HourglassSimulation::LoadZHist(const std::string& profile_file, const std::string& run_number){
+  TFile* f = new TFile(profile_file.c_str(),"READ");
+  std::string blue_name = "bwcm_zprofile_"+run_number;
+  std::string yell_name = "ywcm_zprofile_"+run_number;
+  h_z_profile_blue = (TH1F*)f->Get(blue_name.c_str());
+  h_z_profile_yell = (TH1F*)f->Get(yell_name.c_str());
+  save_registry_.push_back(h_z_profile_blue);
+  save_registry_.push_back(h_z_profile_yell);
   return 0;
 }
 
@@ -811,7 +820,7 @@ int HourglassSimulation::CreateCumulativePoissonDistribution() {
 }
 
 void HourglassSimulation::GenerateDataModel(){
-  std::cout << "Using fitted WCM Data Model" << std::endl;
+  std::cout << "Using histogram profile" << std::endl;
   double sum_T;
   double add_T;
   // Factor of sqrt(2) is coming from the fact that we are looking at the RMS
@@ -851,30 +860,11 @@ void HourglassSimulation::GenerateDataModel(){
       //corrected for xing_angle dependence, 2015
       double sigma_yz = local_sigma_ystar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
 
-      double density_blue_z = fabs(f_z_profile_blue_->Eval(z*cos_half_angle-vel*t));
-      double density_yell_z = fabs(f_z_profile_yell_->Eval(z*cos_half_angle+vel*t));
+      int bin_blue = h_z_profile_blue->FindBin(z*cos_half_angle-vel*t);
+      int bin_yell = h_z_profile_yell->FindBin(z*cos_half_angle+vel*t); 
 
-      if( ! new_fit_model_run ){
-        if(ct == 40){ // set for t == 0
-          gaus_z_blue->SetPoint( gaus_z_blue->GetN(), z, density_blue_z);
-          gaus_z_yell->SetPoint( gaus_z_yell->GetN(), z, density_yell_z);
-        }
-
-        if(!new_model_run && !simple_gaus_model_run ) {
-          if(ct == 35){
-            new_model_z_blue[0]->SetPoint( new_model_z_blue[0]->GetN(), z, density_blue_z);
-            new_model_z_yell[0]->SetPoint( new_model_z_yell[0]->GetN(), z, density_yell_z);
-          }
-          if(ct == 40){
-            new_model_z_blue[1]->SetPoint( new_model_z_blue[1]->GetN(), z, density_blue_z);
-            new_model_z_yell[1]->SetPoint( new_model_z_yell[1]->GetN(), z, density_yell_z);
-          }
-          if(ct == 45){
-            new_model_z_blue[2]->SetPoint( new_model_z_blue[2]->GetN(), z, density_blue_z);
-            new_model_z_yell[2]->SetPoint( new_model_z_yell[2]->GetN(), z, density_yell_z);
-          }
-        }
-      }
+      double density_blue_z = h_z_profile_blue->GetBinContent(bin_blue);
+      double density_yell_z = h_z_profile_yell->GetBinContent(bin_yell);
 
       for(int cx=0; cx<N_bin_x; cx++) {
         double x = x_position_[cx];
@@ -973,7 +963,7 @@ void HourglassSimulation::GenerateModel() {
 
       //corrected for xing_angle dependence, 2015
       double sigma_yz = local_sigma_ystar*sqrt(1 + pow(cos_half_angle*z/beta_star, 2.0));
-
+      
       double density_blue_z = fabs(f_z_profile_blue_->Eval(z*cos_half_angle-vel*t));
       double density_yell_z = fabs(f_z_profile_yell_->Eval(z*cos_half_angle+vel*t));
 
@@ -1156,14 +1146,17 @@ int HourglassSimulation::GenerateZVertexProfile() {
     rand_prob_smear = fabs(static_cast<double>(rand())/RAND_MAX);
     smeared_zpos = SmearZVertex(rand_prob_smear, zpos);
     //std::cout << "rand_smear: " << rand_prob_smear << " zpos: " << zpos << " smeared: " << smeared_zpos << std::endl;
-
-    if(smeared_zpos>-500.0) {//checking for junk value from smearing function
+    float z_vtx = smeared_zpos + z_vtx_off;
+    if(fabs(z_vtx) < 300.) {//checking for junk value from smearing function
       event_limit_count++;//counting final recorded vertices
       zdc_zvertex_sim->Fill(smeared_zpos+z_vtx_off);
     } else {
-      std::cout << "could not get smeared posn, check code." << std::endl;
+      std::cout << "overflow zvertex" << z_vtx << std::endl;
     }
   }// end loop over no. of events
+  // Weird last bin is showing up with extra events, low statistics due to smearing, get rid of it.
+  zdc_zvertex_sim->SetBinContent(100,0);
+  zdc_zvertex_sim->SetBinContent(99,0);
   return 0;
 }
 
@@ -1172,7 +1165,9 @@ int HourglassSimulation::Init(
     const std::string& compare_file_name, 
     const std::string& z_profile_blue, 
     const std::string& z_profile_yell,
-    const std::string& fit_file_name
+    const std::string& fit_file_name,
+    const std::string& hist_file,
+    const std::string& run_number
     ) {
   InitFromConfig(cfg_file);
   InitSpacetime();
@@ -1267,6 +1262,7 @@ int HourglassSimulation::Init(
 
   std::cout << "Done creating plots." << std::endl;
   LoadZProfile(fit_file_name);
+  LoadZHist(hist_file,run_number);
   CreateCumulativePoissonDistribution();
   first_init = true;
   delete data;

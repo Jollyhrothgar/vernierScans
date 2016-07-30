@@ -31,7 +31,9 @@ class HourglassSimulation {
     const std::string& compare_file_name, 
     const std::string& z_profile_blue, 
     const std::string& z_profile_yell,
-    const std::string& fit_file_name
+    const std::string& fit_file_name,
+    const std::string& hist_file,
+    const std::string& run_number
     );
 
   // Use HourglassConfiguration to generate and load the default configuration
@@ -234,6 +236,8 @@ class HourglassSimulation {
   TF1* f_z_profile_yell_;
   TF1* f_simple_gaus_zprofile_blue_;
   TF1* f_simple_gaus_zprofile_yell_;
+  TH1F* h_z_profile_blue;
+  TH1F* h_z_profile_yell;
  
  private: 
 
