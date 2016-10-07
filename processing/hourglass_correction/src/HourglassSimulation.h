@@ -299,11 +299,6 @@ class HourglassSimulation {
   // frequency of bunch crossings 
   double freq; 
 
-  // Scale is an artifact from Greg's simulation, which had the model binned in
-  // such a way that a factor of 1.5 was needed to scale the data values up to
-  // the correct values.
-  double scale;
-  
   // Two simulated bunches, N_blue and N_yell correspond to the average bunch
   // seen in the blue or yellow beam. Bunch asymmetries may lead to z-profile
   // skewing, so we need to be consistant. Unitless parameter, order of
@@ -316,19 +311,6 @@ class HourglassSimulation {
   // additional factor of sqrt(2), we create these variables too.  unit: cm
   double sigma_xstar, sigma_ystar, sigma_x, sigma_y;
   
-  // ZPROFILE BUNCH GEOMETRY:
-  // Z-Profile of each simulated bunch is modeled with three gaussians, a
-  // left-hand side gaussian, a right-hand side gaussian, and a central
-  // gaussian. The parameters are as follows: left-hand gaussian width:
-  // sigma_zl, right-hand gaussian width: sima_zr, center gausian width:
-  // sigma_zc, left gaussian offset: mu_zl, right gaussian offset: mu_zr, with
-  // the center gaussian assumed to have an offset of 0. Units are all cm.
-  //
-  // variables with sc_ prefix have had the "scale" member variable applied as a
-  // mulitplicative factor.
-  double sigma_zl, sigma_zr, sigma_zc, mu_zl, mu_zr, sc_sigma_zl, sc_sigma_zr,
-         sc_sigma_zc, sc_mu_zl, sc_mu_zr;
-
   // Offset between BBC average z-vertex and ZDC average z-vertex, taken at
   // points where beams are maximally overlapped. Unit is cm.
   double  z_vtx_off; 

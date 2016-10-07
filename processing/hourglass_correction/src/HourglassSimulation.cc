@@ -154,20 +154,9 @@ int HourglassSimulation::InitConfig() {
   angle_yz    = std::stod(config_.GetPar("CROSSING_ANGLE_YZ"));
   n_bunch     = std::stod(config_.GetPar("FILLED_BUNCHES"));
   freq        = std::stod(config_.GetPar("BUNCH_CROSSING_FREQUENCY"));
-  scale       = std::stod(config_.GetPar("Z_PROFILE_SCALE_VALUE"));
   multi_coll  = std::stod(config_.GetPar("MULTIPLE_COLLISION_RATE"));
   max_coll    = std::stod(config_.GetPar("MAX_COLLISIONS"));
   MAX_COLL    = max_coll + 1;
-  sigma_zl    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_LEFT_GAUSSIAN")  );
-  sigma_zr    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_RIGHT_GAUSIAN")  );
-  sigma_zc    = std::stod(config_.GetPar("Z_BUNCH_WIDTH_CENTRAL_GAUSIAN"));
-  mu_zl       = std::stod(config_.GetPar("Z_BUNCH_WIDTH_LEFT_OFFSET")    );
-  mu_zr       = std::stod(config_.GetPar("Z_BUNCH_WIDTH_RIGHT_OFFSET")   );
-  sc_sigma_zl = sigma_zl*scale; // applying constants in lumi calculation
-  sc_sigma_zr = sigma_zr*scale; // applying constants in lumi calculation
-  sc_sigma_zc = sigma_zc*scale; // applying constants in lumi calculation
-  sc_mu_zl    = mu_zl   *scale; // applying constants in lumi calculation
-  sc_mu_zr    = mu_zr   *scale; // applying constants in lumi calculation
   zdc_compare_histo_name_ = config_.GetPar("ZDC_VERTEX_DISTRIBUTION_NAME");
 
   //Simulate more statistics to get a good convergence.
@@ -281,16 +270,10 @@ int HourglassSimulation::ManualInit() {
   MAX_COLL = 5 + 1;
   n_bunch = 107;
   freq = 78213.0;
-  scale = 1.5; // What is this for..? wp
   N_blue = 120.029e9; // blue
   N_yell = 88.167e9;  // yellow
   sigma_xstar = 0.0245674/sqrt(2.0); // From run 12 scan (no weighting on beam width)
   sigma_ystar = 0.0238342/sqrt(2.0); 
-  sc_sigma_zl = 35.15*scale; // need to use WCM profile directly.
-  sc_sigma_zc = 27.65*scale; 
-  sc_sigma_zr = 55.95*scale;  
-  sc_mu_zl = -70.2*scale ; 
-  sc_mu_zr =  56.7*scale; 
   z_vtx_off = 9.38; // 
   beta_star = 85; // 85
   angle_xz = -0.08e-3; // wp was -0.08e-3
